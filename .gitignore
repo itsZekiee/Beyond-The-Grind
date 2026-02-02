@@ -1,0 +1,29 @@
+# Root .gitignore
+# Dependencies
+**/node_modules/
+**/vendor/
+**/.angular/
+
+# IDEs
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Laravel specific
+backend/.env
+backend/storage/*.key
+backend/public/storage
+backend/public/hot
+backend/storage/framework/cache/data/*
+backend/storage/framework/views/*.php
+backend/storage/framework/sessions/*
+backend/storage/logs/*.log
+backend/bootstrap/cache/*.php
+
+# Angular specific
+frontend/dist/
+frontend/.angular/
+frontend/*.log

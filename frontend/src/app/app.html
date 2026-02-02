@@ -1,0 +1,117 @@
+<div class="min-h-screen flex flex-col font-inter">
+  <!-- Navigation -->
+  <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+    <div class="container mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2 cursor-pointer group" routerLink="/home">
+        <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white group-hover:rotate-12 transition-transform duration-500">
+           <i class="ri-cup-line text-base"></i>
+        </div>
+        <span class="text-lg font-black tracking-tighter uppercase">Beyond The Grind</span>
+      </div>
+
+      <!-- Desktop Nav -->
+      <nav class="hidden md:flex items-center gap-6">
+        @for (link of navLinks; track link.path) {
+          <a [routerLink]="link.path"
+             routerLinkActive="text-black"
+             [routerLinkActiveOptions]="{exact: true}"
+             class="text-gray-400 hover:text-black transition-all text-xs font-bold uppercase tracking-widest">
+            <span>{{link.label}}</span>
+          </a>
+        }
+      </nav>
+
+      <div class="hidden md:flex items-center gap-4">
+        <button class="text-gray-400 hover:text-black transition-colors">
+          <i class="ri-search-line text-lg"></i>
+        </button>
+        <button class="bg-black text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors shadow-sm" routerLink="/gallery">
+           Gallery
+        </button>
+      </div>
+
+      <!-- Mobile Menu Toggle -->
+      <button class="md:hidden w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-xl" (click)="toggleMenu()">
+        <i [class]="isMenuOpen ? 'ri-close-line' : 'ri-menu-5-line'"></i>
+      </button>
+    </div>
+
+    <!-- Mobile Nav -->
+    <div *ngIf="isMenuOpen" class="md:hidden bg-white border-t px-4 py-6 space-y-4 animate-in slide-in-from-top duration-300">
+      @for (link of navLinks; track link.path) {
+        <a [routerLink]="link.path"
+           routerLinkActive="text-black"
+           [routerLinkActiveOptions]="{exact: true}"
+           (click)="isMenuOpen = false"
+           class="block text-2xl font-playfair text-gray-400 hover:text-black transition-colors">
+          {{link.label}}
+        </a>
+      }
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-grow">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-100 pt-20 pb-10">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+        <div class="space-y-6">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
+               <i class="ri-cup-line text-base"></i>
+            </div>
+            <span class="text-lg font-black tracking-tighter uppercase">Beyond The Grind</span>
+          </div>
+          <p class="text-gray-400 leading-relaxed text-xs max-w-xs">
+            A high-performance travel and lifestyle platform designed for the modern explorer.
+          </p>
+          <div class="flex gap-4 text-lg">
+            <a href="#" class="text-gray-300 hover:text-black transition-colors"><i class="ri-twitter-x-line"></i></a>
+            <a href="#" class="text-gray-300 hover:text-black transition-colors"><i class="ri-instagram-line"></i></a>
+            <a href="#" class="text-gray-300 hover:text-black transition-colors"><i class="ri-github-line"></i></a>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-black">Explore</h4>
+          <ul class="space-y-3 text-gray-400 text-xs font-bold uppercase tracking-widest">
+            @for (link of navLinks; track link.path) {
+              <li><a [routerLink]="link.path" class="hover:text-black transition-colors">
+                {{link.label}}
+              </a></li>
+            }
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-black">Contact</h4>
+          <ul class="space-y-3 text-gray-400 text-xs font-medium">
+            <li>habee2004&#64;gmail.com</li>
+            <li>(+63) 965 201 2720</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-black">Newsletter</h4>
+          <div class="flex border-b border-gray-200 pb-2">
+            <input type="email" placeholder="Your email" class="bg-transparent border-none focus:ring-0 text-xs w-full">
+            <button class="text-black"><i class="ri-arrow-right-line"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+        <p>© 2026 Beyond the Grinds.</p>
+        <div class="flex gap-6">
+          <a routerLink="/admin" class="hover:text-black transition-colors">Admin</a>
+          <a href="#" class="hover:text-black transition-colors">Privacy</a>
+          <a href="#" class="hover:text-black transition-colors">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
