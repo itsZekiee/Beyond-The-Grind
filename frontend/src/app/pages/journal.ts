@@ -2,11 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-journal',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   template: `
     <div class="py-20 animate-in fade-in duration-700">
       <div class="container mx-auto px-4">
@@ -15,28 +16,43 @@ import { HttpClient } from '@angular/common/http';
           <p class="text-gray-500 font-medium">Documenting the journey, one cup at a time</p>
         </div>
 
-        <!-- Layout Toggle -->
-        <div class="flex items-center justify-center gap-4 mb-16">
-          <span class="text-sm text-gray-400">Layout:</span>
-          <div class="flex border rounded-lg overflow-hidden shadow-sm">
-             <button class="p-2 bg-black text-white border-r"><i class="ri-grid-fill"></i></button>
-             <button class="p-2 hover:bg-gray-50 transition-colors border-r text-gray-400"><i class="ri-list-unordered"></i></button>
-             <button class="p-2 hover:bg-gray-50 transition-colors border-r text-gray-400"><i class="ri-image-line"></i></button>
-             <button class="p-2 hover:bg-gray-50 transition-colors text-gray-400"><i class="ri-layout-grid-line"></i></button>
+        <!-- Search + Layout Toggle -->
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+          <div class="w-full md:w-auto flex items-center gap-2">
+            <input [(ngModel)]="query" (keyup.enter)="search()" type="text" placeholder="Search by Journal Title or Cafe/Restaurant Name" class="w-full md:w-96 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-black" />
+            <button (click)="search()" class="bg-black text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800">Search</button>
+            <button (click)="clearSearch()" class="px-3 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-black">Clear</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-400">Layout:</span>
+            <div class="flex border rounded-lg overflow-hidden shadow-sm">
+               <button (click)="setLayout('grid')" class="p-2 border-r" [class.bg-black]="layout==='grid'" [class.text-white]="layout==='grid'" [class.text-gray-400]="layout!=='grid'"><i class="ri-grid-fill"></i></button>
+               <button (click)="setLayout('list')" class="p-2 border-r" [class.bg-black]="layout==='list'" [class.text-white]="layout==='list'" [class.text-gray-400]="layout!=='list'"><i class="ri-list-unordered"></i></button>
+               <button (click)="setLayout('gallery')" class="p-2" [class.bg-black]="layout==='gallery'" [class.text-white]="layout==='gallery'" [class.text-gray-400]="layout!=='gallery'"><i class="ri-image-line"></i></button>
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          @for (post of posts; track post.title) {
-            <div class="bg-white border border-gray-100 overflow-hidden group shadow-sm hover:shadow-md transition-all cursor-pointer" routerLink="/journal">
-              <div class="relative h-64 bg-gray-100 flex items-center justify-center overflow-hidden">
+        <div [ngClass]="{
+              'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8': layout==='grid' || layout==='gallery',
+              'space-y-6': layout==='list'
+            }">
+          @for (post of posts; track post.id) {
+            <div [ngClass]="{
+                  'bg-white border border-gray-100 overflow-hidden group shadow-sm hover:shadow-md transition-all cursor-pointer': true,
+                  'md:col-span-2 lg:col-span-1': layout==='gallery'
+                }" [routerLink]="['/article', post.id]">
+              <div [ngClass]="{
+                    'relative h-64 bg-gray-100 flex items-center justify-center overflow-hidden': true,
+                    'h-48': layout==='list'
+                  }">
                 <i class="ri-image-line text-6xl text-gray-300 group-hover:scale-110 transition-transform duration-700"></i>
                 <div class="absolute top-4 right-4 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 shadow-sm">
                   {{post.category}}
                 </div>
               </div>
-              <div class="p-8">
-                <h3 class="text-xl font-bold mb-3 text-gray-900 leading-tight group-hover:text-black transition-colors">{{post.title}}</h3>
+              <div class="p-8" [ngClass]="{'flex items-start gap-6': layout==='list'}">
+                <h3 class="text-xl font-bold mb-3 text-gray-900 leading-tight group-hover:text-black transition-colors" [ngClass]="{'mb-1': layout==='list'}">{{post.title}}</h3>
                 <div class="flex items-center gap-4 text-xs text-gray-400 mb-4 font-medium">
                   <span class="flex items-center gap-1"><i class="ri-map-pin-line"></i> {{post.location}}</span>
                   <span class="flex items-center gap-1"><i class="ri-calendar-line"></i> {{post.date}}</span>
@@ -59,7 +75,7 @@ import { HttpClient } from '@angular/common/http';
                       <i class="ri-share-line"></i> Share
                     </button>
                   </div>
-                  <button class="bg-black text-white px-6 py-2 text-xs font-bold hover:bg-gray-800 transition-colors">
+                  <button class="bg-black text-white px-6 py-2 text-xs font-bold hover:bg-gray-800 transition-colors" [routerLink]="['/article', post.id]">
                     Read More
                   </button>
                 </div>
@@ -73,6 +89,8 @@ import { HttpClient } from '@angular/common/http';
 })
 export class JournalComponent implements OnInit {
   posts: any[] = [];
+  layout: 'grid' | 'list' | 'gallery' = 'grid';
+  query = '';
 
   constructor(private http: HttpClient) {}
 
@@ -80,30 +98,49 @@ export class JournalComponent implements OnInit {
     this.fetchPosts();
   }
 
+  setLayout(mode: 'grid'|'list'|'gallery') {
+    this.layout = mode;
+  }
+
+  search() {
+    const url = this.query && this.query.trim() ? `http://localhost:8000/api/cafes?q=${encodeURIComponent(this.query.trim())}` : 'http://localhost:8000/api/cafes';
+    this.http.get<any[]>(url).subscribe({
+      next: (data) => this.mapPosts(data),
+      error: () => this.loadMockData()
+    });
+  }
+
+  clearSearch() {
+    this.query = '';
+    this.fetchPosts();
+  }
+
   fetchPosts() {
     this.http.get<any[]>('http://localhost:8000/api/cafes').subscribe({
-      next: (data) => {
-        if (data && data.length > 0) {
-          this.posts = data.map(item => ({
-            id: item.id,
-            title: item.name,
-            category: 'Coffee',
-            location: item.location,
-            date: new Date(item.created_at).toLocaleDateString(),
-            rating: item.rating,
-            likes: item.likes || 0,
-            liked: false,
-            description: item.review
-          }));
-        } else {
-          this.loadMockData();
-        }
-      },
+      next: (data) => this.mapPosts(data),
       error: (err) => {
         console.error('Failed to fetch cafes from backend:', err);
         this.loadMockData();
       }
     });
+  }
+
+  private mapPosts(data: any[]) {
+    if (data && data.length > 0) {
+      this.posts = data.map(item => ({
+        id: item.id,
+        title: item.title || item.name,
+        category: (item.tags && item.tags.length ? item.tags[0] : (item.type || 'Coffee')),
+        location: item.location,
+        date: item.created_at ? new Date(item.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+        rating: item.rating,
+        likes: item.likes || 0,
+        liked: false,
+        description: item.review
+      }));
+    } else {
+      this.loadMockData();
+    }
   }
 
   loadMockData() {

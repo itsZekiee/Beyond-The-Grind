@@ -1,6 +1,7 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, signal, OnInit } from '@angular/core';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -8,8 +9,9 @@ import { CommonModule } from '@angular/common';
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App {
+export class App implements OnInit {
   protected readonly title = signal('Beyond the Grinds');
+  isAdminPage = false;
 
   navLinks = [
     { path: '/home', label: 'Home', icon: 'ri-cup-line' },
@@ -18,6 +20,16 @@ export class App {
   ];
 
   isMenuOpen = false;
+
+  constructor(private router: Router) {}
+
+  ngOnInit() {
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: any) => {
+      this.isAdminPage = event.url.startsWith('/admin');
+    });
+  }
 
   toggleMenu() {
     this.isMenuOpen = !this.isMenuOpen;

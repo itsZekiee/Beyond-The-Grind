@@ -21,7 +21,7 @@ declare var L: any;
                     [class.bg-black]="cat === activeCategory"
                     [class.text-white]="cat === activeCategory"
                     [class.border-black]="cat === activeCategory"
-                    (click)="activeCategory = cat">
+                    (click)="setCategory(cat)">
               <i class="text-lg" [class]="getIcon(cat)"></i>
               {{cat}}
             </button>
@@ -36,11 +36,12 @@ declare var L: any;
 
           <!-- Sidebar: List -->
           <div class="w-full md:w-[450px] flex flex-col bg-white">
-            <div class="p-8 border-b border-gray-50">
+            <div class="p-8 border-b border-gray-50 flex justify-between items-center">
                <h2 class="text-2xl font-playfair font-bold">Locations</h2>
+               <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest" *ngIf="userCoords">Within 5km</span>
             </div>
             <div class="flex-grow overflow-y-auto">
-               @for (loc of locations; track loc.name) {
+               @for (loc of filteredLocations; track loc.name) {
                  <div class="p-8 border-b border-gray-50 hover:bg-gray-50 transition-colors flex justify-between items-center group cursor-pointer" (click)="focusLocation(loc)">
                    <div>
                      <div class="flex items-center gap-3 mb-2">
@@ -56,9 +57,18 @@ declare var L: any;
                            <i class="ri-check-line text-gray-400"></i>
                            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{{loc.status}}</span>
                         </div>
+                        <div class="text-[10px] text-gray-400 font-bold" *ngIf="loc.distance">
+                          {{loc.distance.toFixed(1)}}km away
+                        </div>
                      </div>
                    </div>
                    <i class="ri-map-pin-line text-gray-300 text-xl group-hover:text-black transition-colors"></i>
+                 </div>
+               }
+               @if (filteredLocations.length === 0) {
+                 <div class="p-20 text-center text-gray-400">
+                    <i class="ri-map-pin-2-line text-4xl mb-4 block"></i>
+                    <p class="text-sm font-medium">No locations found within 5km of your location.</p>
                  </div>
                }
             </div>
@@ -83,16 +93,20 @@ declare var L: any;
 export class RoadTripsComponent implements AfterViewInit {
   activeCategory = 'All Locations';
   private map: any;
+  userCoords: { lat: number, lng: number } | null = null;
+  filteredLocations: any[] = [];
+  markers: any[] = [];
 
   locations = [
-    { name: 'Blue Bottle Coffee', rating: 4.5, status: 'Visited', lat: 37.7749, lng: -122.4194 },
-    { name: 'Tartine Bakery', rating: 4.8, status: 'Visited', lat: 37.7614, lng: -122.4243 },
-    { name: 'Sightglass Coffee', rating: 4.6, status: 'Not visited', lat: 37.7770, lng: -122.4085 },
-    { name: 'Ferry Building', rating: 4.7, status: 'Visited', lat: 37.7955, lng: -122.3937 },
+    { name: 'Blue Bottle Coffee', rating: 4.5, status: 'Visited', lat: 37.7749, lng: -122.4194, category: 'Coffee' },
+    { name: 'Tartine Bakery', rating: 4.8, status: 'Visited', lat: 37.7614, lng: -122.4243, category: 'Food' },
+    { name: 'Sightglass Coffee', rating: 4.6, status: 'Not visited', lat: 37.7770, lng: -122.4085, category: 'Coffee' },
+    { name: 'Ferry Building', rating: 4.7, status: 'Visited', lat: 37.7955, lng: -122.3937, category: 'Landmarks' },
   ];
 
   ngAfterViewInit() {
     this.initMap();
+    this.applyFilters();
   }
 
   private initMap() {
@@ -103,32 +117,82 @@ export class RoadTripsComponent implements AfterViewInit {
     }).addTo(this.map);
 
     this.detectUserLocation();
-    this.addMarkers();
   }
 
   private detectUserLocation() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((position) => {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-        this.map.setView([userLat, userLng], 13);
+        this.userCoords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        this.map.setView([this.userCoords.lat, this.userCoords.lng], 13);
 
-        L.marker([userLat, userLng], {
+        L.marker([this.userCoords.lat, this.userCoords.lng], {
           icon: L.divIcon({
             html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"></div>',
             className: 'custom-user-icon'
           })
         }).addTo(this.map).bindPopup('You are here');
+
+        this.applyFilters();
       });
     }
   }
 
-  private addMarkers() {
-    this.locations.forEach(loc => {
+  setCategory(cat: string) {
+    this.activeCategory = cat;
+    this.applyFilters();
+  }
+
+  private applyFilters() {
+    // 1. Filter by category
+    let filtered = this.locations;
+    if (this.activeCategory !== 'All Locations') {
+      filtered = filtered.filter(loc => loc.category === this.activeCategory);
+    }
+
+    // 2. Filter by Geofence (5km)
+    if (this.userCoords) {
+      filtered = filtered.filter(loc => {
+        const dist = this.getDistance(this.userCoords!.lat, this.userCoords!.lng, loc.lat, loc.lng);
+        (loc as any).distance = dist;
+        return dist <= 5;
+      });
+    }
+
+    this.filteredLocations = filtered;
+    this.updateMarkers();
+  }
+
+  private getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLon = this.deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2)
+      ;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  }
+
+  private deg2rad(deg: number) {
+    return deg * (Math.PI / 180);
+  }
+
+  private updateMarkers() {
+    // Clear existing markers
+    this.markers.forEach(m => this.map.removeLayer(m));
+    this.markers = [];
+
+    // Add new markers
+    this.filteredLocations.forEach(loc => {
       const marker = L.marker([loc.lat, loc.lng], {
         icon: L.divIcon({
           html: `<div class="bg-black text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform">
-                  <i class="ri-cup-line"></i>
+                  <i class="${this.getIcon(loc.category)}"></i>
                  </div>`,
           className: 'custom-marker',
           iconSize: [32, 32],
@@ -137,6 +201,7 @@ export class RoadTripsComponent implements AfterViewInit {
       }).addTo(this.map);
 
       marker.bindPopup(this.createPopupContent(loc));
+      this.markers.push(marker);
     });
   }
 

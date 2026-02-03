@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-home',
@@ -51,8 +52,8 @@ import { RouterLink } from '@angular/router';
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          @for (post of posts; track post.title) {
-            <div class="bg-white overflow-hidden group shadow-sm hover:shadow-xl transition-all duration-500 rounded-3xl border border-gray-100 cursor-pointer" routerLink="/journal">
+          @for (post of posts; track post.id) {
+            <div class="bg-white overflow-hidden group shadow-sm hover:shadow-xl transition-all duration-500 rounded-3xl border border-gray-100 cursor-pointer" [routerLink]="['/article', post.id]">
               <div class="relative h-56 bg-gray-100 flex items-center justify-center overflow-hidden">
                 <i class="ri-image-line text-5xl text-gray-200 group-hover:scale-110 transition-transform duration-700"></i>
                 <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-900 rounded-full shadow-sm">
@@ -83,7 +84,7 @@ import { RouterLink } from '@angular/router';
                       <i class="ri-share-line"></i> Share
                     </button>
                   </div>
-                  <button class="text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
+                  <button class="text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4" [routerLink]="['/article', post.id]">
                     Read More
                   </button>
                 </div>
@@ -116,8 +117,40 @@ import { RouterLink } from '@angular/router';
     </section>
   `
 })
-export class HomeComponent {
-  posts = [
+export class HomeComponent implements OnInit {
+  posts: any[] = [];
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit() {
+    this.fetchPosts();
+  }
+
+  private fetchPosts() {
+    this.http.get<any[]>('http://localhost:8000/api/cafes').subscribe({
+      next: (data) => {
+        if (data && data.length) {
+          this.posts = data.slice(0, 6).map(item => ({
+            id: item.id,
+            title: item.title || item.name,
+            category: (item.tags && item.tags.length ? item.tags[0] : (item.type || 'Coffee')),
+            location: item.location,
+            date: item.created_at ? new Date(item.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+            rating: item.rating,
+            likes: item.likes || 0,
+            liked: false,
+            description: item.review
+          }));
+        } else {
+          this.posts = this.mockPosts();
+        }
+      },
+      error: () => this.posts = this.mockPosts()
+    });
+  }
+
+  private mockPosts() {
+    return [
     {
       title: 'Hidden Gem in Portland',
       category: 'Coffee',
@@ -148,7 +181,8 @@ export class HomeComponent {
       liked: false,
       description: 'Perfect pairing of fresh croissants and a velvety cappuccino. The barista art was next level.'
     }
-  ];
+    ];
+  }
 
   likePost(post: any) {
     post.liked = !post.liked;
