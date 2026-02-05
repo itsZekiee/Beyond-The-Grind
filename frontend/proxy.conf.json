@@ -1,0 +1,11 @@
+{
+  "/api": {
+    "target": "http://[::1]:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api": "/api"
+    },
+    "logLevel": "debug"
+  }
+}

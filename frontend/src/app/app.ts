@@ -12,6 +12,7 @@ import { filter } from 'rxjs/operators';
 export class App implements OnInit {
   protected readonly title = signal('Beyond the Grinds');
   isAdminPage = false;
+  isLoggedIn = false;
 
   navLinks = [
     { path: '/home', label: 'Home', icon: 'ri-cup-line' },
@@ -24,11 +25,17 @@ export class App implements OnInit {
   constructor(private router: Router) {}
 
   ngOnInit() {
+    this.checkLoginStatus();
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
       this.isAdminPage = event.url.startsWith('/admin');
+      this.checkLoginStatus();
     });
+  }
+
+  checkLoginStatus() {
+    this.isLoggedIn = localStorage.getItem('btg_admin') === '1';
   }
 
   toggleMenu() {

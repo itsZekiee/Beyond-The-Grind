@@ -37,8 +37,9 @@ import { HttpClient } from '@angular/common/http';
             </div>
           </div>
 
-          <div class="aspect-video bg-gray-100 rounded-[2.5rem] mb-12 flex items-center justify-center overflow-hidden">
-             <i class="ri-image-line text-9xl text-gray-200"></i>
+          <div class="aspect-video bg-gray-100 rounded-[2.5rem] mb-12 flex items-center justify-center overflow-hidden relative group">
+             <img *ngIf="post.image" [src]="post.image" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000">
+             <i *ngIf="!post.image" class="ri-image-line text-9xl text-gray-200"></i>
           </div>
 
           <div class="prose prose-lg max-w-none">
@@ -90,7 +91,7 @@ export class ArticleDetailsComponent implements OnInit {
 
   fetchPost(id: string) {
     // Attempt to fetch from API
-    this.http.get<any>('http://localhost:8000/api/cafes/' + id).subscribe({
+    this.http.get<any>('/api/cafes/' + id).subscribe({
       next: (item) => {
         this.post = {
           id: item.id,
@@ -101,8 +102,11 @@ export class ArticleDetailsComponent implements OnInit {
           rating: item.rating,
           likes: item.likes || 0,
           liked: false,
-          description: item.review
+          description: item.review,
+          image: item.image_path
         };
+        // Record a view
+        this.http.post(`/api/cafes/${id}/view`, {}).subscribe();
       },
       error: () => {
         // Fallback or handle error

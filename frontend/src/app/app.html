@@ -1,6 +1,6 @@
 <div class="min-h-screen flex flex-col font-inter">
   <!-- Navigation -->
-  <header *ngIf="!isAdminPage" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+  <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
     <div class="container mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center gap-2 cursor-pointer group" routerLink="/home">
         <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white group-hover:rotate-12 transition-transform duration-500">
@@ -10,7 +10,7 @@
       </div>
 
       <!-- Desktop Nav -->
-      <nav class="hidden md:flex items-center gap-6">
+      <nav *ngIf="!isLoggedIn" class="hidden md:flex items-center gap-6">
         @for (link of navLinks; track link.path) {
           <a [routerLink]="link.path"
              routerLinkActive="text-black"
@@ -21,7 +21,7 @@
         }
       </nav>
 
-      <div class="hidden md:flex items-center gap-4">
+      <div *ngIf="!isLoggedIn" class="hidden md:flex items-center gap-4">
         <button class="text-gray-400 hover:text-black transition-colors" routerLink="/journal" title="Search">
           <i class="ri-search-line text-lg"></i>
         </button>
@@ -37,7 +37,7 @@
     </div>
 
     <!-- Mobile Nav -->
-    <div *ngIf="isMenuOpen" class="md:hidden bg-white border-t px-4 py-6 space-y-4 animate-in slide-in-from-top duration-300">
+    <div *ngIf="isMenuOpen && !isLoggedIn" class="md:hidden bg-white border-t px-4 py-6 space-y-4 animate-in slide-in-from-top duration-300">
       @for (link of navLinks; track link.path) {
         <a [routerLink]="link.path"
            routerLinkActive="text-black"

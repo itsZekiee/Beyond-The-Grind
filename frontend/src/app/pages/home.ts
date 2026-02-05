@@ -14,6 +14,22 @@ import { HttpClient } from '@angular/common/http';
         <p class="text-lg md:text-xl text-gray-500 max-w-xl mx-auto leading-relaxed mb-10 font-medium">
           A digital journal for the modern explorer. Document your coffee adventures, discover hidden gems, and map your culinary journeys.
         </p>
+
+        <!-- Visitor Counter -->
+        <div class="inline-flex items-center gap-4 px-6 py-3 bg-white border border-gray-100 rounded-full shadow-sm animate-in slide-in-from-top-4 duration-1000 delay-500">
+           <div class="flex -space-x-2">
+             <div class="w-8 h-8 rounded-full bg-gray-900 border-2 border-white flex items-center justify-center text-[10px] font-bold text-white">
+               <i class="ri-user-line"></i>
+             </div>
+             <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-600">
+               <i class="ri-pulse-line"></i>
+             </div>
+           </div>
+           <div class="text-left">
+             <span class="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 leading-none mb-1">Total Visitors</span>
+             <span class="text-sm font-bold text-gray-900">{{visitorCount.toLocaleString()}}</span>
+           </div>
+        </div>
       </div>
     </section>
 
@@ -22,18 +38,18 @@ import { HttpClient } from '@angular/common/http';
       <div class="container mx-auto">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
            <div class="aspect-video bg-gray-100 flex items-end p-6 relative overflow-hidden group cursor-pointer rounded-2xl" routerLink="/journal">
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <i class="ri-image-line text-7xl absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-200 group-hover:scale-110 transition-transform duration-700"></i>
+              <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Cozy Cafes">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
               <span class="relative z-10 text-white font-bold text-xl tracking-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-500">Cozy Cafes</span>
            </div>
            <div class="aspect-video bg-gray-100 flex items-end p-6 relative overflow-hidden group cursor-pointer rounded-2xl" routerLink="/journal">
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <i class="ri-image-line text-7xl absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-200 group-hover:scale-110 transition-transform duration-700"></i>
+              <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=800" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Perfect Brews">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
               <span class="relative z-10 text-white font-bold text-xl tracking-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-500">Perfect Brews</span>
            </div>
-           <div class="aspect-video bg-gray-100 flex items-end p-6 relative overflow-hidden group cursor-pointer rounded-2xl" routerLink="/road-trips">
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <i class="ri-image-line text-7xl absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-200 group-hover:scale-110 transition-transform duration-700"></i>
+           <div class="aspect-video bg-gray-100 flex items-end p-6 relative overflow-hidden group cursor-pointer rounded-2xl" routerLink="/journal">
+              <img src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Epic Journeys">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
               <span class="relative z-10 text-white font-bold text-xl tracking-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-500">Epic Journeys</span>
            </div>
         </div>
@@ -54,8 +70,9 @@ import { HttpClient } from '@angular/common/http';
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           @for (post of posts; track post.id) {
             <div class="bg-white overflow-hidden group shadow-sm hover:shadow-xl transition-all duration-500 rounded-3xl border border-gray-100 cursor-pointer" [routerLink]="['/article', post.id]">
-              <div class="relative h-56 bg-gray-100 flex items-center justify-center overflow-hidden">
-                <i class="ri-image-line text-5xl text-gray-200 group-hover:scale-110 transition-transform duration-700"></i>
+            <div class="relative h-56 bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img *ngIf="post.image" [src]="post.image" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" [alt]="post.title">
+                <i *ngIf="!post.image" class="ri-image-line text-5xl text-gray-200 group-hover:scale-110 transition-transform duration-700"></i>
                 <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-900 rounded-full shadow-sm">
                   {{post.category}}
                 </div>
@@ -119,18 +136,34 @@ import { HttpClient } from '@angular/common/http';
 })
 export class HomeComponent implements OnInit {
   posts: any[] = [];
+  visitorCount = 0;
 
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
     this.fetchPosts();
+    this.updateVisitorCount();
+  }
+
+  private updateVisitorCount() {
+    this.http.get<{count: number}>('/api/visitors').subscribe({
+      next: (res) => this.visitorCount = res.count,
+      error: () => {
+        // Fallback only if backend fails
+        this.visitorCount = parseInt(localStorage.getItem('btg_visitors') || '1240');
+      }
+    });
   }
 
   private fetchPosts() {
-    this.http.get<any[]>('http://localhost:8000/api/cafes').subscribe({
+    // Fetch top 3 most popular articles
+    this.http.get<any[]>('/api/cafes?sort=popular').subscribe({
       next: (data) => {
         if (data && data.length) {
-          this.posts = data.slice(0, 6).map(item => ({
+          // Take top 3
+          this.posts = data
+            .slice(0, 3)
+            .map(item => ({
             id: item.id,
             title: item.title || item.name,
             category: (item.tags && item.tags.length ? item.tags[0] : (item.type || 'Coffee')),
@@ -138,8 +171,10 @@ export class HomeComponent implements OnInit {
             date: item.created_at ? new Date(item.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
             rating: item.rating,
             likes: item.likes || 0,
+            views: item.views || 0,
             liked: false,
-            description: item.review
+            description: item.review,
+            image: item.image_path
           }));
         } else {
           this.posts = this.mockPosts();
@@ -147,6 +182,10 @@ export class HomeComponent implements OnInit {
       },
       error: () => this.posts = this.mockPosts()
     });
+  }
+
+  private recordView(id: number) {
+    this.http.post(`/api/cafes/${id}/view`, {}).subscribe();
   }
 
   private mockPosts() {
