@@ -463,14 +463,17 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  fetchPosts() {
+  private fetchPosts() {
     this.http.get<any[]>('/api/cafes?all=true').subscribe({
       next: (data) => {
-        this.posts = data;
-        this.publishedPosts = data.filter(p => p.is_published);
-        this.totalLikes = data.reduce((acc, p) => acc + (p.likes || 0), 0);
-        this.totalViews = data.reduce((acc, p) => acc + (p.views || 0), 0);
-        this.avgRating = data.length ? data.reduce((acc, p) => acc + (p.rating || 0), 0) / data.length : 0;
+        this.posts = (data || []).map(p => ({
+          ...p,
+          image: p.image_path // Unified image property name for consistency if needed, though admin uses p.image_path mostly
+        }));
+        this.publishedPosts = this.posts.filter(p => p.is_published);
+        this.totalLikes = this.posts.reduce((acc, p) => acc + (p.likes || 0), 0);
+        this.totalViews = this.posts.reduce((acc, p) => acc + (p.views || 0), 0);
+        this.avgRating = this.posts.length ? this.posts.reduce((acc, p) => acc + (p.rating || 0), 0) / this.posts.length : 0;
       }
     });
   }

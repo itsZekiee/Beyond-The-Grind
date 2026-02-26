@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-admin-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="py-20 animate-in fade-in duration-700">
       <div class="container mx-auto px-4">
@@ -24,6 +24,7 @@ import { Router } from '@angular/router';
             </div>
             <div *ngIf="error" class="text-red-500 text-xs">{{error}}</div>
             <button type="submit" class="w-full bg-black text-white px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-colors">Sign In</button>
+            <button type="button" routerLink="/home" class="w-full bg-gray-100 text-gray-900 px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-colors mt-2">Back to Home</button>
           </form>
         </div>
       </div>

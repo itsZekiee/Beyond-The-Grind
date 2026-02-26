@@ -90,7 +90,6 @@ export class ArticleDetailsComponent implements OnInit {
   }
 
   fetchPost(id: string) {
-    // Attempt to fetch from API
     this.http.get<any>('/api/cafes/' + id).subscribe({
       next: (item) => {
         this.post = {
@@ -108,16 +107,22 @@ export class ArticleDetailsComponent implements OnInit {
         // Record a view
         this.http.post(`/api/cafes/${id}/view`, {}).subscribe();
       },
-      error: () => {
-        // Fallback or handle error
-        console.error('Post not found');
+      error: (err) => {
+        console.error('Post not found:', err);
+        this.post = null;
       }
     });
   }
 
   likePost() {
-    this.post.liked = !this.post.liked;
-    this.post.likes += this.post.liked ? 1 : -1;
+    if (!this.post) return;
+    const action = this.post.liked ? 'unlike' : 'like';
+    this.http.post<any>(`/api/cafes/${this.post.id}/${action}`, {}).subscribe({
+      next: (res) => {
+        this.post.liked = !this.post.liked;
+        this.post.likes = res.likes;
+      }
+    });
   }
 
   sharePost() {

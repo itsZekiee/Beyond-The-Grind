@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-journal',
@@ -20,7 +21,7 @@ import { FormsModule } from '@angular/forms';
         <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div class="w-full md:w-auto flex flex-col gap-4">
             <div class="flex items-center gap-2">
-              <input [(ngModel)]="query" (keyup.enter)="search()" type="text" placeholder="Search by Journal Title or Cafe/Restaurant Name" class="w-full md:w-96 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-black" />
+              <input [(ngModel)]="query" (ngModelChange)="onSearchChange($event)" type="text" placeholder="Search by Journal Title or Cafe/Restaurant Name" class="w-full md:w-96 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-black" />
               <button (click)="search()" class="bg-black text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800">Search</button>
               <button (click)="clearSearch()" class="px-3 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-black">Clear</button>
             </div>
@@ -120,11 +121,18 @@ import { FormsModule } from '@angular/forms';
             </div>
           }
         </div>
+
+        <!-- Empty State -->
+        <div *ngIf="filteredPosts.length === 0" class="text-center py-20">
+          <i class="ri-search-line text-6xl text-gray-200 mb-4 block"></i>
+          <h3 class="text-xl font-bold text-gray-400">No journal entries found</h3>
+          <p class="text-gray-400">Try adjusting your search or filters.</p>
+        </div>
       </div>
     </div>
   `
 })
-export class JournalComponent implements OnInit {
+export class JournalComponent implements OnInit, OnDestroy {
   posts: any[] = [];
   filteredPosts: any[] = [];
   layout: 'grid' | 'list' | 'gallery' = 'grid';
@@ -132,10 +140,26 @@ export class JournalComponent implements OnInit {
   availableTags: string[] = ['Coffee', 'Travel', 'Food', 'Tourist Spot', 'Mountain'];
   selectedTag = '';
 
+  private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
     this.fetchPosts();
+
+    this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.fetchPosts();
+    });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   setLayout(mode: 'grid'|'list'|'gallery') {
@@ -147,21 +171,16 @@ export class JournalComponent implements OnInit {
     this.applyFilters();
   }
 
+  onSearchChange(val: string) {
+    this.searchSubject.next(val);
+  }
+
   search() {
     this.fetchPosts();
   }
 
   private applyFilters() {
     let results = [...this.posts];
-
-    if (this.query && this.query.trim()) {
-      const q = this.query.toLowerCase().trim();
-      results = results.filter(p =>
-        p.title.toLowerCase().includes(q) ||
-        p.location.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q)
-      );
-    }
 
     if (this.selectedTag) {
       results = results.filter(p =>
@@ -179,7 +198,10 @@ export class JournalComponent implements OnInit {
   }
 
   fetchPosts() {
-    const url = this.query && this.query.trim() ? `/api/cafes?all=true&q=${encodeURIComponent(this.query.trim())}` : '/api/cafes?all=true';
+    const url = this.query && this.query.trim()
+      ? `/api/cafes?all=true&q=${encodeURIComponent(this.query.trim())}`
+      : '/api/cafes?all=true';
+
     this.http.get<any[]>(url).subscribe({
       next: (data) => {
         this.mapPosts(data);
@@ -187,132 +209,37 @@ export class JournalComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to fetch cafes from backend:', err);
-        this.loadMockData();
-        this.applyFilters();
+        this.posts = [];
+        this.filteredPosts = [];
       }
     });
   }
 
   private mapPosts(data: any[]) {
-    if (data && data.length > 0) {
-      this.posts = data.map(item => ({
-        id: item.id,
-        title: item.title || item.name,
-        category: (item.tags && item.tags.length ? item.tags[0] : (item.type || 'Coffee')),
-        tags: item.tags || [],
-        location: item.location,
-        date: item.created_at ? new Date(item.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
-        rating: item.rating,
-        likes: item.likes || 0,
-        views: item.views || 0,
-        liked: false,
-        description: item.review,
-        image: item.image_path
-      }));
-    } else {
-      this.loadMockData();
-    }
-  }
-
-  loadMockData() {
-    this.posts = [
-      {
-        title: 'Hidden Gem in Portland',
-        category: 'Coffee',
-        location: 'Portland, OR',
-        date: '1/28/2026',
-        rating: 4.5,
-        likes: 42,
-        liked: false,
-        description: 'Discovered an incredible third-wave coffee shop tucked away in the Pearl District. Their single-origin Ethiopian pour-over was absolutely divine.'
-      },
-      {
-        title: 'Coastal Highway Adventure',
-        category: 'Travel',
-        location: 'Highway 1, CA',
-        date: '1/25/2026',
-        rating: 5,
-        likes: 128,
-        liked: false,
-        description: 'Epic road trip along the Pacific Coast Highway. Stopped at every scenic viewpoint and found amazing local roasters along the way.'
-      },
-      {
-        title: 'Artisan Bakery & Brew',
-        category: 'Food & Coffee',
-        location: 'Seattle, WA',
-        date: '1/22/2026',
-        rating: 4.8,
-        likes: 67,
-        liked: false,
-        description: 'Perfect pairing of fresh croissants and a velvety cappuccino. The barista art was next level.'
-      },
-      {
-        title: 'Mountain Retreat Cafe',
-        category: 'Coffee',
-        location: 'Asheville, NC',
-        date: '1/20/2026',
-        rating: 4.3,
-        likes: 34,
-        liked: false,
-        description: 'Rustic mountain cafe with breathtaking views. Their cold brew was smooth and perfectly balanced.'
-      },
-      {
-        title: 'Urban Food Market',
-        category: 'Food',
-        location: 'Brooklyn, NY',
-        date: '1/18/2026',
-        rating: 4.6,
-        likes: 91,
-        liked: false,
-        description: 'Explored a vibrant food market with incredible street food vendors and a specialty coffee cart.'
-      },
-      {
-        title: 'Desert Oasis Roastery',
-        category: 'Coffee',
-        location: 'Phoenix, AZ',
-        date: '1/15/2026',
-        rating: 4.7,
-        likes: 53,
-        liked: false,
-        description: 'Unexpected find in the desert! Small-batch roastery with unique bean selections from around the world.'
-      },
-      {
-        title: 'Vintage Coffeehouse Chronicles',
-        category: 'Coffee',
-        location: 'Austin, TX',
-        date: '1/12/2026',
-        rating: 4.4,
-        likes: 27,
-        liked: false,
-        description: 'A nostalgic journey through a beautifully preserved 1960s coffeehouse with authentic vintage equipment.'
-      },
-      {
-        title: 'Minimalist Brew Bar',
-        category: 'Coffee',
-        location: 'Tokyo, Japan',
-        date: '1/8/2026',
-        rating: 4.9,
-        likes: 215,
-        liked: false,
-        description: 'Japanese precision meets coffee artistry in this serene minimalist space dedicated to the perfect cup.'
-      },
-    ];
+    this.posts = (data || []).map(item => ({
+      id: item.id,
+      title: item.title || item.name,
+      category: (item.tags && item.tags.length ? item.tags[0] : (item.type || 'Coffee')),
+      tags: item.tags || [],
+      location: item.location,
+      date: item.created_at ? new Date(item.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+      rating: item.rating,
+      likes: item.likes || 0,
+      views: item.views || 0,
+      liked: false,
+      description: item.review,
+      image: item.image_path
+    }));
   }
 
   likePost(post: any) {
-    post.liked = !post.liked;
-    if (post.liked) {
-      post.likes = (post.likes || 0) + 1;
-      if (post.id) {
-        this.http.post('/api/cafes/' + post.id + '/like', {}).subscribe();
+    const action = post.liked ? 'unlike' : 'like';
+    this.http.post<any>(`/api/cafes/${post.id}/${action}`, {}).subscribe({
+      next: (res) => {
+        post.liked = !post.liked;
+        post.likes = res.likes;
       }
-    } else {
-      post.likes = Math.max(0, (post.likes || 0) - 1);
-      if (post.id) {
-        this.http.post('/api/cafes/' + post.id + '/unlike', {}).subscribe();
-      }
-    }
-    console.log('Liked post:', post.title, 'Status:', post.liked, 'Likes:', post.likes);
+    });
   }
 
   sharePost(post: any) {

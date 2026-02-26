@@ -156,81 +156,83 @@ export class HomeComponent implements OnInit {
   }
 
   private fetchPosts() {
-    // Fetch top 3 most popular articles
-    this.http.get<any[]>('/api/cafes?sort=popular').subscribe({
-      next: (data) => {
-        if (data && data.length) {
-          // Take top 3
-          this.posts = data
-            .slice(0, 3)
-            .map(item => ({
-            id: item.id,
-            title: item.title || item.name,
-            category: (item.tags && item.tags.length ? item.tags[0] : (item.type || 'Coffee')),
-            location: item.location,
-            date: item.created_at ? new Date(item.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
-            rating: item.rating,
-            likes: item.likes || 0,
-            views: item.views || 0,
-            liked: false,
-            description: item.review,
-            image: item.image_path
-          }));
+    // 1. First attempt to fetch Featured articles (as requested by user)
+    this.http.get<any[]>('/api/cafes?featured=true').subscribe({
+      next: (featuredData) => {
+        if (featuredData && featuredData.length > 0) {
+          this.posts = this.processPosts(featuredData.slice(0, 3));
         } else {
-          this.posts = this.mockPosts();
+          // 2. If no featured, fallback to Top 3 most popular
+          this.fetchPopularPosts();
         }
       },
-      error: () => this.posts = this.mockPosts()
+      error: () => this.fetchPopularPosts()
     });
+  }
+
+  private fetchPopularPosts() {
+    this.http.get<any[]>('/api/cafes?sort=popular').subscribe({
+      next: (popularData) => {
+        if (popularData && popularData.length > 0) {
+          this.posts = this.processPosts(popularData.slice(0, 3));
+        } else {
+          // 3. Last fallback: latest posts
+          this.fetchLatestPosts();
+        }
+      },
+      error: () => this.fetchLatestPosts()
+    });
+  }
+
+  private fetchLatestPosts() {
+    this.http.get<any[]>('/api/cafes?sort=latest').subscribe({
+      next: (latestData) => {
+        this.posts = this.processPosts(latestData.slice(0, 3));
+      },
+      error: () => this.posts = []
+    });
+  }
+
+  private processPosts(data: any[]): any[] {
+    return data.map(item => ({
+      id: item.id,
+      title: item.title || item.name,
+      category: (item.tags && item.tags.length ? item.tags[0] : (item.type || 'Coffee')),
+      location: item.location,
+      date: item.created_at ? new Date(item.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+      rating: item.rating,
+      likes: item.likes || 0,
+      views: item.views || 0,
+      liked: false,
+      description: item.review,
+      image: this.formatImageUrl(item.image_path)
+    }));
+  }
+
+  private formatImageUrl(path: string | null): string | null {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    // Ensure the path is correctly formatted for the backend proxy
+    // Our proxy maps /api to http://[::1]:8000
+    // If image_path is /storage/images/xyz.jpg, we need it to go through the proxy or direct to backend
+    // Since we don't have a direct /storage proxy, let's see where /api/cafes stores it.
+    // In CafeController: $validated['image_path'] = Storage::url($path);
+    // which usually returns /storage/images/...
+    return path;
   }
 
   private recordView(id: number) {
     this.http.post(`/api/cafes/${id}/view`, {}).subscribe();
   }
 
-  private mockPosts() {
-    return [
-    {
-      title: 'Hidden Gem in Portland',
-      category: 'Coffee',
-      location: 'Portland, OR',
-      date: 'Jan 28, 2026',
-      rating: 4.5,
-      likes: 124,
-      liked: false,
-      description: 'Discovered an incredible third-wave coffee shop tucked away in the Pearl District. Their single-origin Ethiopian pour-over was absolutely divine.'
-    },
-    {
-      title: 'Coastal Highway Adventure',
-      category: 'Travel',
-      location: 'Highway 1, CA',
-      date: 'Jan 25, 2026',
-      rating: 5,
-      likes: 89,
-      liked: false,
-      description: 'Epic road trip along the Pacific Coast Highway. Stopped at every scenic viewpoint and found amazing local roasters along the way.'
-    },
-    {
-      title: 'Artisan Bakery & Brew',
-      category: 'Food & Coffee',
-      location: 'Seattle, WA',
-      date: 'Jan 22, 2026',
-      rating: 4.8,
-      likes: 56,
-      liked: false,
-      description: 'Perfect pairing of fresh croissants and a velvety cappuccino. The barista art was next level.'
-    }
-    ];
-  }
-
   likePost(post: any) {
-    post.liked = !post.liked;
-    if (post.liked) {
-      post.likes = (post.likes || 0) + 1;
-    } else {
-      post.likes = Math.max(0, (post.likes || 0) - 1);
-    }
-    console.log('Liked post:', post.title, 'Status:', post.liked, 'Likes:', post.likes);
+    const action = post.liked ? 'unlike' : 'like';
+    this.http.post<any>(`/api/cafes/${post.id}/${action}`, {}).subscribe({
+      next: (res) => {
+        post.liked = !post.liked;
+        post.likes = res.likes;
+      }
+    });
   }
 
   sharePost(post: any) {

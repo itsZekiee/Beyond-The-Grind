@@ -18,6 +18,7 @@ export class App implements OnInit {
     { path: '/home', label: 'Home', icon: 'ri-cup-line' },
     { path: '/journal', label: 'Journal', icon: 'ri-book-open-line' },
     { path: '/road-trips', label: 'Road Trips', icon: 'ri-map-2-line' },
+    { path: '/gallery', label: 'Gallery', icon: 'ri-image-line' },
   ];
 
   isMenuOpen = false;
