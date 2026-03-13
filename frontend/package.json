@@ -2,8 +2,9 @@
   "name": "frontend",
   "version": "0.0.0",
   "scripts": {
+    "dev": "ng serve",
     "ng": "ng",
-    "start": "ng serve --proxy-config proxy.conf.json",
+    "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
