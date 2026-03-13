@@ -182,143 +182,133 @@ import { HttpClient } from '@angular/common/http';
 
         <!-- View: Create/Edit -->
         <div *ngIf="view === 'create' || view === 'edit'" class="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div class="bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
-            <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-50">
-              <div>
-                <h3 class="text-2xl font-bold text-gray-900">{{view === 'create' ? 'Create New' : 'Edit'}} Entry</h3>
-                <p class="text-gray-400 text-xs font-medium mt-1">Fill in the information below to {{view === 'create' ? 'publish a new adventure' : 'update your entry' }}.</p>
-              </div>
-              <button (click)="view = 'dashboard'" class="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400">
-                <i class="ri-close-line text-2xl"></i>
-              </button>
+            <div class="bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-50">
+                    <div>
+                      <h3 class="text-2xl font-bold text-gray-900">{{view === 'create' ? 'Create New' : 'Edit'}} Entry</h3>
+                      <p class="text-gray-400 text-xs font-medium mt-1">Fill in the information below to {{view === 'create' ? 'publish a new adventure' : 'update your entry' }}.</p>
+                    </div>
+                    <button (click)="view = 'dashboard'" class="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400">
+                      <i class="ri-close-line text-2xl"></i>
+                    </button>
+                </div>
+
+                <form (ngSubmit)="save()" class="space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        <!-- Left Column -->
+                        <div class="space-y-6">
+                            <div class="space-y-2">
+                              <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Journal Title</label>
+                              <input [(ngModel)]="form.title" name="title" type="text" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" placeholder="Enter a compelling title..." />
+                            </div>
+
+                          <div class="space-y-2">
+                            <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Establishment Name</label>
+                            <input [(ngModel)]="form.name" name="name" type="text" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" required placeholder="Cafe or Restaurant name" />
+                          </div>
+
+                          <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                              <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Type</label>
+                              <div class="relative">
+                                <select [(ngModel)]="form.type" name="type" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all appearance-none outline-none">
+                                  <option value="Cafe">Cafe</option>
+                                  <option value="Restaurant">Restaurant</option>
+                                  <option value="Landmark">Landmark</option>
+                                </select>
+                                <i class="ri-arrow-down-s-line absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                              </div>
+                            </div>
+                            <div class="space-y-2">
+                              <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Rating (0.0 - 5.0)</label>
+                              <input [(ngModel)]="form.rating" name="rating" type="number" step="0.1" min="0" max="5" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" required />
+                            </div>
+                          </div>
+
+                          <div class="space-y-2">
+                            <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Location Details</label>
+                            <input [(ngModel)]="form.location" name="location" type="text" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" required placeholder="City, State or Full Address" />
+                          </div>
+
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="space-y-6">
+                            <div class="space-y-2">
+                              <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Cover Image</label>
+                              <div class="border-2 border-dashed border-gray-100 rounded-2xl p-6 text-center hover:border-black/10 transition-colors bg-gray-50/50">
+                                <input type="file" accept="image/*" (change)="onFileChange($event)" id="file-upload" class="hidden" />
+                                <label for="file-upload" class="cursor-pointer">
+                                  <i class="ri-image-add-line text-3xl text-gray-300 block mb-2"></i>
+                                  <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">{{imageFile ? imageFile.name : 'Select or drop image'}}</span>
+                                  <p class="text-[10px] text-gray-400 mt-1">JPG, PNG up to 5MB</p>
+                                </label>
+                              </div>
+                            </div>
+
+                          <div class="space-y-2">
+                            <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Categorization (Tags)</label>
+                            <div class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                              <button type="button" *ngFor="let t of presetTags" (click)="toggleTag(t)" [class.bg-black]="selectedTags.includes(t)" [class.text-white]="selectedTags.includes(t)" [class.border-black]="selectedTags.includes(t)" class="px-3 py-1.5 rounded-lg border border-gray-200 text-[10px] font-bold uppercase tracking-widest hover:border-black transition-all">{{t}}</button>
+                            </div>
+                            <input [(ngModel)]="tagsInput" name="tags" type="text" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none mt-2" placeholder="Custom tags (comma separated)..." />
+                          </div>
+
+                          <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                              <div class="relative w-10 h-6">
+                                <input [(ngModel)]="form.is_published" name="is_published" type="checkbox" class="sr-only peer" />
+                                <div class="w-full h-full bg-gray-200 rounded-full peer-checked:bg-black transition-colors"></div>
+                                <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
+                              </div>
+                              <div>
+                                <span class="block text-xs font-bold uppercase tracking-widest text-gray-900">Visibility</span>
+                                <span class="text-[10px] text-gray-400">Published content is visible to all users.</span>
+                              </div>
+                            </label>
+                          </div>
+
+                          <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                              <div class="relative w-10 h-6">
+                                <input [(ngModel)]="form.is_featured" name="is_featured" type="checkbox" class="sr-only peer" />
+                                <div class="w-full h-full bg-gray-200 rounded-full peer-checked:bg-yellow-400 transition-colors"></div>
+                                <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
+                              </div>
+                              <div>
+                                <span class="block text-xs font-bold uppercase tracking-widest text-gray-900">Featured</span>
+                                <span class="text-[10px] text-gray-400">Display this article prominently on the home page.</span>
+                              </div>
+                            </label>
+                          </div>
+                      </div>
+                    </div>
+
+                    <div class="space-y-2">
+                      <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Review Content</label>
+                      <textarea [(ngModel)]="form.review" name="review" rows="6" class="w-full bg-white border border-gray-200 rounded-xl px-6 py-4 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none resize-none" required placeholder="Describe the atmosphere, the coffee, and your overall experience..."></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-6 border-t border-gray-50">
+                        <div class="flex items-center gap-4">
+                          <button type="submit" class="bg-black text-white px-10 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl disabled:opacity-50">
+                            {{view === 'create' ? 'Publish Entry' : 'Update Entry'}}
+                          </button>
+                          <button type="button" (click)="saveDraft()" class="bg-gray-100 text-gray-900 px-6 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
+                            Save Draft
+                          </button>
+                          <button type="button" (click)="loadDraft()" class="bg-gray-100 text-gray-900 px-6 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
+                            Load Draft
+                          </button>
+                          <button type="button" (click)="view = 'dashboard'" class="text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-black px-6 py-4 transition-colors">Cancel</button>
+                        </div>
+                        <div *ngIf="message" class="flex items-center gap-2 px-4 py-2 rounded-lg" [class.bg-green-50]="message.includes('success')" [class.bg-red-50]="message.includes('failed')">
+                          <i [class]="message.includes('success') ? 'ri-checkbox-circle-line text-green-600' : 'ri-error-warning-line text-red-600'"></i>
+                          <span class="text-xs font-bold uppercase tracking-widest" [class.text-green-600]="message.includes('success')" [class.text-red-600]="message.includes('failed')">{{message}}</span>
+                        </div>
+                    </div>
+                </form>
             </div>
-
-            <form (ngSubmit)="save()" class="space-y-8">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <!-- Left Column -->
-                <div class="space-y-6">
-                  <div class="space-y-2">
-                    <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Journal Title</label>
-                    <input [(ngModel)]="form.title" name="title" type="text" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" placeholder="Enter a compelling title..." />
-                  </div>
-
-                  <div class="space-y-2">
-                    <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Establishment Name</label>
-                    <input [(ngModel)]="form.name" name="name" type="text" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" required placeholder="Cafe or Restaurant name" />
-                  </div>
-
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                      <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Type</label>
-                      <div class="relative">
-                        <select [(ngModel)]="form.type" name="type" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all appearance-none outline-none">
-                          <option value="Cafe">Cafe</option>
-                          <option value="Restaurant">Restaurant</option>
-                          <option value="Landmark">Landmark</option>
-                        </select>
-                        <i class="ri-arrow-down-s-line absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-                      </div>
-                    </div>
-                    <div class="space-y-2">
-                      <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Rating (0.0 - 5.0)</label>
-                      <input [(ngModel)]="form.rating" name="rating" type="number" step="0.1" min="0" max="5" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" required />
-                    </div>
-                  </div>
-
-                  <div class="space-y-2">
-                    <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Location Details</label>
-                    <input [(ngModel)]="form.location" name="location" type="text" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" required placeholder="City, State or Full Address" />
-                  </div>
-
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                      <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Latitude</label>
-                      <input [(ngModel)]="form.latitude" name="latitude" type="number" step="0.000001" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" placeholder="e.g., 37.7749" />
-                    </div>
-                    <div class="space-y-2">
-                      <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Longitude</label>
-                      <input [(ngModel)]="form.longitude" name="longitude" type="number" step="0.000001" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none" placeholder="e.g., -122.4194" />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Right Column -->
-                <div class="space-y-6">
-                  <div class="space-y-2">
-                    <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Cover Image</label>
-                    <div class="border-2 border-dashed border-gray-100 rounded-2xl p-6 text-center hover:border-black/10 transition-colors bg-gray-50/50">
-                      <input type="file" accept="image/*" (change)="onFileChange($event)" id="file-upload" class="hidden" />
-                      <label for="file-upload" class="cursor-pointer">
-                        <i class="ri-image-add-line text-3xl text-gray-300 block mb-2"></i>
-                        <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">{{imageFile ? imageFile.name : 'Select or drop image'}}</span>
-                        <p class="text-[10px] text-gray-400 mt-1">JPG, PNG up to 5MB</p>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div class="space-y-2">
-                    <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Categorization (Tags)</label>
-                    <div class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                      <button type="button" *ngFor="let t of presetTags" (click)="toggleTag(t)" [class.bg-black]="selectedTags.includes(t)" [class.text-white]="selectedTags.includes(t)" [class.border-black]="selectedTags.includes(t)" class="px-3 py-1.5 rounded-lg border border-gray-200 text-[10px] font-bold uppercase tracking-widest hover:border-black transition-all">{{t}}</button>
-                    </div>
-                    <input [(ngModel)]="tagsInput" name="tags" type="text" class="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none mt-2" placeholder="Custom tags (comma separated)..." />
-                  </div>
-
-                  <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                    <label class="flex items-center gap-3 cursor-pointer group">
-                      <div class="relative w-10 h-6">
-                        <input [(ngModel)]="form.is_published" name="is_published" type="checkbox" class="sr-only peer" />
-                        <div class="w-full h-full bg-gray-200 rounded-full peer-checked:bg-black transition-colors"></div>
-                        <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
-                      </div>
-                      <div>
-                        <span class="block text-xs font-bold uppercase tracking-widest text-gray-900">Visibility</span>
-                        <span class="text-[10px] text-gray-400">Published content is visible to all users.</span>
-                      </div>
-                    </label>
-                  </div>
-
-                  <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                    <label class="flex items-center gap-3 cursor-pointer group">
-                      <div class="relative w-10 h-6">
-                        <input [(ngModel)]="form.is_featured" name="is_featured" type="checkbox" class="sr-only peer" />
-                        <div class="w-full h-full bg-gray-200 rounded-full peer-checked:bg-yellow-400 transition-colors"></div>
-                        <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
-                      </div>
-                      <div>
-                        <span class="block text-xs font-bold uppercase tracking-widest text-gray-900">Featured</span>
-                        <span class="text-[10px] text-gray-400">Display this article prominently on the home page.</span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div class="space-y-2">
-                <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Review Content</label>
-                <textarea [(ngModel)]="form.review" name="review" rows="6" class="w-full bg-white border border-gray-200 rounded-xl px-6 py-4 text-sm focus:ring-2 focus:ring-black focus:border-black transition-all outline-none resize-none" required placeholder="Describe the atmosphere, the coffee, and your overall experience..."></textarea>
-              </div>
-
-              <div class="flex items-center justify-between pt-6 border-t border-gray-50">
-                <div class="flex items-center gap-4">
-                  <button type="submit" class="bg-black text-white px-10 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl disabled:opacity-50">
-                    {{view === 'create' ? 'Publish Entry' : 'Update Entry'}}
-                  </button>
-                  <button type="button" (click)="saveDraft()" class="bg-gray-100 text-gray-900 px-6 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
-                    Save Draft
-                  </button>
-                  <button type="button" (click)="loadDraft()" class="bg-gray-100 text-gray-900 px-6 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
-                    Load Draft
-                  </button>
-                  <button type="button" (click)="view = 'dashboard'" class="text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-black px-6 py-4 transition-colors">Cancel</button>
-                </div>
-                <div *ngIf="message" class="flex items-center gap-2 px-4 py-2 rounded-lg" [class.bg-green-50]="message.includes('success')" [class.bg-red-50]="message.includes('failed')">
-                  <i [class]="message.includes('success') ? 'ri-checkbox-circle-line text-green-600' : 'ri-error-warning-line text-red-600'"></i>
-                  <span class="text-xs font-bold uppercase tracking-widest" [class.text-green-600]="message.includes('success')" [class.text-red-600]="message.includes('failed')">{{message}}</span>
-                </div>
-              </div>
-            </form>
-          </div>
         </div>
 
         <!-- View: Settings -->
@@ -415,7 +405,7 @@ export class AdminComponent implements OnInit {
   view: 'dashboard' | 'journal' | 'pins' | 'settings' | 'create' | 'edit' = 'dashboard';
   posts: any[] = [];
   publishedPosts: any[] = [];
-  form: any = { title: '', name: '', type: 'Cafe', location: '', rating: 0, review: '', is_published: true, is_featured: false, latitude: null, longitude: null };
+  form: any = { title: '', name: '', type: 'Cafe', location: '', rating: 0, review: '', is_published: true, is_featured: false };
   tagsInput = '';
   presetTags: string[] = ['Coffee', 'Travel', 'Food', 'Tourist Spot', 'Mountain'];
   selectedTags: string[] = [];
@@ -490,12 +480,6 @@ export class AdminComponent implements OnInit {
     fd.append('rating', String(this.form.rating ?? 0));
     fd.append('review', this.form.review || '');
 
-    if (this.form.latitude !== null && this.form.latitude !== undefined) {
-      fd.append('latitude', String(this.form.latitude));
-    }
-    if (this.form.longitude !== null && this.form.longitude !== undefined) {
-      fd.append('longitude', String(this.form.longitude));
-    }
 
     fd.append('is_published', this.form.is_published ? '1' : '0');
     fd.append('is_featured', this.form.is_featured ? '1' : '0');
@@ -514,6 +498,7 @@ export class AdminComponent implements OnInit {
       });
     } else {
       // Laravel PUT doesn't handle FormData well, so we spoof it with POST + _method=PUT
+      console.log("Location API Error");
       fd.append('_method', 'PUT');
       this.http.post(`/api/cafes/${this.form.id}`, fd).subscribe({
         next: () => this.handleSuccess('Content updated successfully'),
@@ -564,7 +549,7 @@ export class AdminComponent implements OnInit {
   }
 
   resetForm() {
-    this.form = { title: '', name: '', type: 'Cafe', location: '', rating: 0, review: '', is_published: true, is_featured: false, latitude: null, longitude: null };
+    this.form = { title: '', name: '', type: 'Cafe', location: '', rating: 0, review: '', is_published: true, is_featured: false };
     this.tagsInput = '';
     this.selectedTags = [];
     this.imageFile = null;
