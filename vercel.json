@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/angular",
+      "config": {
+        "distDir": "frontend/dist/frontend"
+      }
+    },
+    {
+      "src": "backend/api/index.php",
+      "use": "@vercel/php"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/backend/api/index.php"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend"
+    }
+  ]
+}
+
