@@ -1,26 +1,29 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "frontend/dist/frontend/browser"
-      }
-    },
-    {
-      "src": "backend/api/index.php",
-      "use": "@vercel/php"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/backend/api/index.php"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/frontend/dist/frontend/browser/index.html"
-    }
-  ]
+    "version": 2,
+    "public": true,
+    "builds": [
+        {
+            "src": "frontend/package.json",
+            "use": "@vercel/node",
+            "config": {
+                "includeFiles": [
+                    "dist/frontend/browser/**"
+                ]
+            }
+        },
+        {
+            "src": "backend/api/index.php",
+            "use": "@vercel/php"
+        }
+    ],
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/backend/api/index.php"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "frontend/dist/server/main.js"
+        }
+    ]
 }
