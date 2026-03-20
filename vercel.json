@@ -1,15 +1,9 @@
 {
     "version": 2,
-    "public": true,
     "builds": [
         {
             "src": "frontend/package.json",
-            "use": "@vercel/node",
-            "config": {
-                "includeFiles": [
-                    "frontend/dist/browser/**"
-                ]
-            }
+            "use": "@vercel/node"
         },
         {
             "src": "backend/api/index.php",
@@ -23,7 +17,7 @@
         },
         {
             "source": "/(.*)",
-            "destination": "frontend/dist/server/main.js"
+            "destination": "frontend/api/index.js"
         }
     ]
 }
