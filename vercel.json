@@ -7,7 +7,7 @@
             "use": "@vercel/node",
             "config": {
                 "includeFiles": [
-                    "dist/browser/**"
+                    "frontend/dist/browser/**"
                 ]
             }
         },
@@ -23,7 +23,7 @@
         },
         {
             "source": "/(.*)",
-            "destination": "dist/server/main.js"
+            "destination": "frontend/dist/server/main.js"
         }
     ]
 }
