@@ -36,7 +36,11 @@ export class App implements OnInit {
   }
 
   checkLoginStatus() {
-    this.isLoggedIn = localStorage.getItem('btg_admin') === '1';
+    if (typeof localStorage !== 'undefined') {
+      this.isLoggedIn = localStorage.getItem('btg_admin') === '1';
+    } else {
+      this.isLoggedIn = false;
+    }
   }
 
   toggleMenu() {
