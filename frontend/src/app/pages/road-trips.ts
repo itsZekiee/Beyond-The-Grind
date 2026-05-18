@@ -1,5 +1,5 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 
 declare var L: any;
 
@@ -97,6 +97,8 @@ export class RoadTripsComponent implements AfterViewInit {
   filteredLocations: any[] = [];
   markers: any[] = [];
 
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+
   locations = [
     { name: 'Blue Bottle Coffee', rating: 4.5, status: 'Visited', lat: 37.7749, lng: -122.4194, category: 'Coffee' },
     { name: 'Tartine Bakery', rating: 4.8, status: 'Visited', lat: 37.7614, lng: -122.4243, category: 'Food' },
@@ -105,8 +107,10 @@ export class RoadTripsComponent implements AfterViewInit {
   ];
 
   ngAfterViewInit() {
-    this.initMap();
-    this.applyFilters();
+    if (isPlatformBrowser(this.platformId)) {
+      this.initMap();
+      this.applyFilters();
+    }
   }
 
   private initMap() {
