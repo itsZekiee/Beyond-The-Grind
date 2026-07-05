@@ -93,9 +93,9 @@ export class GalleryComponent implements OnInit {
 
   private applyFilters() {
     if (this.activeCategory === 'All') {
-      this.filteredPosts = [...this.posts];
+      this.filteredGallery = [...this.galleryItems];
     } else {
-      this.filteredPosts = this.posts.filter(p => 
+      this.filteredGallery = this.galleryItems.filter((p: any) => 
         p.type === this.activeCategory || (p.tags && p.tags.includes(this.activeCategory))
       );
     }
