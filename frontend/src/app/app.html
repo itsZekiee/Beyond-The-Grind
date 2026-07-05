@@ -25,6 +25,14 @@
         <button class="text-gray-400 hover:text-black transition-colors" routerLink="/journal" title="Search">
           <i class="ri-search-line text-lg"></i>
         </button>
+        <div *ngIf="!currentUser" class="flex items-center gap-4">
+          <a routerLink="/login" class="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors">Sign In</a>
+          <a routerLink="/register" class="text-xs font-bold uppercase tracking-widest bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition-colors">Sign Up</a>
+        </div>
+        <div *ngIf="currentUser" class="flex items-center gap-4">
+          <span class="text-xs font-bold uppercase tracking-widest text-black">Hi, {{ currentUser.name }}</span>
+          <button (click)="logoutUser()" class="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors">Logout</button>
+        </div>
       </div>
 
       <!-- Mobile Menu Toggle -->
@@ -44,6 +52,16 @@
           {{link.label}}
         </a>
       }
+      <div class="pt-6 border-t mt-6">
+        <div *ngIf="!currentUser" class="flex flex-col gap-4">
+          <a routerLink="/login" (click)="isMenuOpen = false" class="text-xl font-playfair text-gray-400 hover:text-black transition-colors">Sign In</a>
+          <a routerLink="/register" (click)="isMenuOpen = false" class="text-xl font-playfair text-gray-400 hover:text-black transition-colors">Sign Up</a>
+        </div>
+        <div *ngIf="currentUser" class="flex flex-col gap-4">
+          <span class="text-xl font-playfair text-black">Hi, {{ currentUser.name }}</span>
+          <button (click)="logoutUser(); isMenuOpen = false" class="text-xl font-playfair text-gray-400 hover:text-black transition-colors text-left">Logout</button>
+        </div>
+      </div>
     </div>
   </header>
 

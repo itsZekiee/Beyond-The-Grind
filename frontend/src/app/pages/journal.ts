@@ -4,6 +4,9 @@ import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+import { SupabaseService } from '../services/supabase.service';
 
 @Component({
   selector: 'app-journal',
@@ -61,7 +64,7 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
                     'relative h-64 bg-gray-100 flex items-center justify-center overflow-hidden': true,
                     'h-48 w-48 shrink-0': layout==='list'
                   }">
-                <img *ngIf="post.image" [src]="post.image" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" [alt]="post.title">
+                <img *ngIf="post.image" [src]="post.image" (error)="post.image = ''" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" [alt]="post.title">
                 <i *ngIf="!post.image" class="ri-image-line text-6xl text-gray-300 group-hover:scale-110 transition-transform duration-700"></i>
                 <div class="absolute top-4 right-4 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 shadow-sm">
                   {{post.category}}
@@ -100,9 +103,9 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
             <!-- Gallery Layout Item (Instagram-style) -->
             <div *ngIf="layout === 'gallery'"
-                 class="relative mb-4 break-inside-avoid overflow-hidden group cursor-pointer rounded-xl bg-gray-100 shadow-sm hover:shadow-xl transition-all duration-500"
+                 class="relative aspect-square mb-4 break-inside-avoid overflow-hidden group cursor-pointer rounded-xl bg-gray-100 shadow-sm hover:shadow-xl transition-all duration-500"
                  [routerLink]="['/article', post.id]">
-              <img *ngIf="post.image" [src]="post.image" class="w-full h-auto block group-hover:scale-105 transition-transform duration-700" [alt]="post.title">
+              <img *ngIf="post.image" [src]="post.image" (error)="post.image = ''" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" [alt]="post.title">
               <div *ngIf="!post.image" class="w-full aspect-square flex items-center justify-center">
                  <i class="ri-image-line text-4xl text-gray-300"></i>
               </div>
@@ -146,12 +149,26 @@ export class JournalComponent implements OnInit, OnDestroy {
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService,
+    private router: Router,
+    private supabaseService: SupabaseService
   ) {}
 
   ngOnInit() {
-    // Fetch data immediately to ensure state is populated
     this.fetchPosts();
+    
+    if (isPlatformBrowser(this.platformId)) {
+      // Subscribe to realtime changes
+      const client = this.supabaseService.client;
+      if (client) {
+        client.channel('journal-cafes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'cafes' }, payload => {
+            this.fetchPosts();
+          })
+          .subscribe();
+      }
+    }
 
     this.searchSubject.pipe(
       debounceTime(300),
@@ -250,6 +267,11 @@ export class JournalComponent implements OnInit, OnDestroy {
   }
 
   likePost(post: any) {
+    if (!this.authService.currentUserValue) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
     const action = post.liked ? 'unlike' : 'like';
     this.http.post<any>(`/api/cafes/${post.id}/${action}`, {}).subscribe({
       next: (res) => {

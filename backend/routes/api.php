@@ -31,13 +31,24 @@ Route::get('/migrate', function () {
     }
 });
 
+use App\Http\Controllers\AuthController;
+
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+    
+    Route::post('/cafes/{id}/like', [CafeController::class, 'like']);
+    Route::post('/cafes/{id}/unlike', [CafeController::class, 'unlike']);
+});
+
 Route::get('/cafes', [CafeController::class, 'index']);
 Route::get('/cafes/{id}', [CafeController::class, 'show']);
 Route::post('/cafes', [CafeController::class, 'store']);
 Route::put('/cafes/{id}', [CafeController::class, 'update']);
 Route::delete('/cafes/{id}', [CafeController::class, 'destroy']);
-Route::post('/cafes/{id}/like', [CafeController::class, 'like']);
-Route::post('/cafes/{id}/unlike', [CafeController::class, 'unlike']);
 Route::post('/cafes/{id}/view', [CafeController::class, 'recordView']);
 
 Route::get('/visitors', function () {

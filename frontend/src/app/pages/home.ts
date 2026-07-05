@@ -4,6 +4,9 @@ import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, Inject, ChangeDetectorRef } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+import { SupabaseService } from '../services/supabase.service';
 
 @Component({
   selector: 'app-home',
@@ -41,7 +44,7 @@ import { PLATFORM_ID, Inject, ChangeDetectorRef } from '@angular/core';
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
            @for (post of featuredPosts; track post.id) {
              <div class="aspect-video bg-gray-100 flex items-end p-6 relative overflow-hidden group cursor-pointer rounded-2xl" [routerLink]="['/article', post.id]">
-                <img *ngIf="post.image" [src]="post.image" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" [alt]="post.title">
+                <img *ngIf="post.image" [src]="post.image" (error)="post.image = ''" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" [alt]="post.title">
                 <i *ngIf="!post.image" class="ri-image-line text-8xl text-gray-300 absolute inset-0 flex items-center justify-center"></i>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <span class="relative z-10 text-white font-bold text-xl tracking-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-500">{{post.title}}</span>
@@ -69,7 +72,7 @@ import { PLATFORM_ID, Inject, ChangeDetectorRef } from '@angular/core';
           @for (post of posts; track post.id) {
             <div class="bg-white overflow-hidden group shadow-sm hover:shadow-xl transition-all duration-500 rounded-3xl border border-gray-100 cursor-pointer" [routerLink]="['/article', post.id]">
             <div class="relative h-56 bg-gray-100 flex items-center justify-center overflow-hidden">
-                <img *ngIf="post.image" [src]="post.image" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" [alt]="post.title">
+                <img *ngIf="post.image" [src]="post.image" (error)="post.image = ''" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" [alt]="post.title">
                 <i *ngIf="!post.image" class="ri-image-line text-5xl text-gray-200 group-hover:scale-110 transition-transform duration-700"></i>
                 <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-900 rounded-full shadow-sm">
                   {{post.category}}
@@ -140,13 +143,29 @@ export class HomeComponent implements OnInit {
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService,
+    private router: Router,
+    private supabaseService: SupabaseService
   ) {}
 
   ngOnInit() {
-    this.fetchPosts();
-    this.fetchFeaturedPosts();
-    this.updateVisitorCount();
+    if (isPlatformBrowser(this.platformId)) {
+      this.fetchPosts();
+      this.fetchFeaturedPosts();
+      this.updateVisitorCount();
+
+      // Subscribe to realtime changes
+      const client = this.supabaseService.client;
+      if (client) {
+        client.channel('home-cafes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'cafes' }, payload => {
+            this.fetchPosts();
+            this.fetchFeaturedPosts();
+          })
+          .subscribe();
+      }
+    }
   }
 
   getImageUrl(path: string) {
@@ -219,6 +238,11 @@ export class HomeComponent implements OnInit {
   }
 
   likePost(post: any) {
+    if (!this.authService.currentUserValue) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    
     const action = post.liked ? 'unlike' : 'like';
     this.http.post<any>(`/api/cafes/${post.id}/${action}`, {}).subscribe({
       next: (res) => {

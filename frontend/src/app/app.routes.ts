@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from './pages/home';
+import { LoginComponent } from './pages/login';
+import { RegisterComponent } from './pages/register';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
@@ -11,4 +13,6 @@ export const routes: Routes = [
   { path: 'admin', loadComponent: () => import('./pages/admin').then(m => m.AdminComponent) },
   { path: 'article/:id', loadComponent: () => import('./pages/article-details').then(m => m.ArticleDetailsComponent) },
   { path: 'get-password-reset', loadComponent: () => import('./pages/get-password-reset').then(m => m.GetPasswordResetComponent) },
+  { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
 ];

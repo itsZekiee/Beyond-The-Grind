@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, Inject } from '@angular/core';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-article-details',
@@ -74,7 +75,9 @@ export class ArticleDetailsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -121,6 +124,11 @@ export class ArticleDetailsComponent implements OnInit {
 
   likePost() {
     if (!this.post) return;
+    if (!this.authService.currentUserValue) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    
     const action = this.post.liked ? 'unlike' : 'like';
     this.http.post<any>(`/api/cafes/${this.post.id}/${action}`, {}).subscribe({
       next: (res) => {

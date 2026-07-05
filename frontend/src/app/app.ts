@@ -1,5 +1,6 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
+import { AuthService, User } from './services/auth.service';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 
@@ -22,11 +23,17 @@ export class App implements OnInit {
   ];
 
   isMenuOpen = false;
+  currentUser: User | null = null;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, public authService: AuthService) {}
 
   ngOnInit() {
     this.checkLoginStatus();
+    
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+    });
+
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
@@ -45,5 +52,10 @@ export class App implements OnInit {
 
   toggleMenu() {
     this.isMenuOpen = !this.isMenuOpen;
+  }
+
+  logoutUser() {
+    this.authService.logout();
+    this.router.navigate(['/home']);
   }
 }

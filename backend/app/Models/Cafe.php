@@ -36,4 +36,9 @@ class Cafe extends Model
     {
         return $query->where('is_published', true);
     }
+
+    public function likedByUsers()
+    {
+        return $this->belongsToMany(User::class, 'cafe_user_likes')->withTimestamps();
+    }
 }

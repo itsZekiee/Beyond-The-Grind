@@ -1,5 +1,6 @@
 import { Component, OnInit, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { SupabaseService } from '../services/supabase.service';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 
@@ -29,10 +30,10 @@ import { RouterLink } from '@angular/router';
 
         <div class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
           @for (item of filteredGallery; track item.id) {
-             <div class="relative mb-4 break-inside-avoid overflow-hidden group cursor-pointer rounded-xl bg-gray-100 shadow-sm" [routerLink]="['/article', item.id]">
+             <div class="relative aspect-square mb-4 break-inside-avoid overflow-hidden group cursor-pointer rounded-xl bg-gray-100 shadow-sm" [routerLink]="['/article', item.id]">
                <!-- First image -->
-               <img *ngIf="item.images && item.images.length > 0" [src]="item.images[0]" class="w-full h-auto block group-hover:scale-105 transition-transform duration-700">
-               <img *ngIf="(!item.images || item.images.length === 0) && item.image_path" [src]="item.image_path" class="w-full h-auto block group-hover:scale-105 transition-transform duration-700">
+               <img *ngIf="item.images && item.images.length > 0" [src]="item.images[0]" (error)="item.images = []" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+               <img *ngIf="(!item.images || item.images.length === 0) && item.image_path" [src]="item.image_path" (error)="item.image_path = ''" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
                <div *ngIf="(!item.images || item.images.length === 0) && !item.image_path" class="w-full aspect-square flex items-center justify-center">
                   <i class="ri-image-line text-4xl text-gray-300"></i>
                </div>
@@ -69,11 +70,24 @@ export class GalleryComponent implements OnInit {
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private supabaseService: SupabaseService
   ) {}
 
   ngOnInit() {
     this.fetchGallery();
+    
+    if (isPlatformBrowser(this.platformId)) {
+      // Subscribe to realtime changes
+      const client = this.supabaseService.client;
+      if (client) {
+        client.channel('gallery-cafes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'cafes' }, payload => {
+            this.fetchGallery();
+          })
+          .subscribe();
+      }
+    }
   }
 
   getImageUrl(path: string) {

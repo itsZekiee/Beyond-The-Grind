@@ -71,8 +71,8 @@ class CafeController extends Controller
                 'tags' => 'nullable|array',
                 'tags.*' => 'string',
                 'images' => 'nullable|array',
-                'images.*' => 'image|max:5120',
-                'image' => 'nullable|image|max:5120',
+                'images.*' => 'nullable|string',
+                'image' => 'nullable|string',
             ]);
 
             if ($request->has('is_published')) {
@@ -82,22 +82,14 @@ class CafeController extends Controller
                 $validated['is_featured'] = filter_var($request->is_featured, FILTER_VALIDATE_BOOLEAN);
             }
 
-            if ($request->hasFile('image')) {
-                $path = $request->file('image')->store('public/images');
-                $validated['image_path'] = Storage::url($path);
+            if ($request->has('image')) {
+                $validated['image_path'] = $request->input('image');
             }
 
-            $imagesPaths = [];
-            if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $image) {
-                    $path = $image->store('public/images');
-                    $imagesPaths[] = Storage::url($path);
-                }
-            }
-            if (!empty($imagesPaths)) {
-                $validated['images'] = $imagesPaths;
-                if (!isset($validated['image_path']) && count($imagesPaths) > 0) {
-                    $validated['image_path'] = $imagesPaths[0]; // Set the first image as the cover
+            if ($request->has('images')) {
+                $validated['images'] = $request->input('images');
+                if (!isset($validated['image_path']) && count($validated['images']) > 0) {
+                    $validated['image_path'] = $validated['images'][0]; // Set the first image as the cover
                 }
             }
 
@@ -154,8 +146,8 @@ class CafeController extends Controller
                 'tags' => 'nullable|array',
                 'tags.*' => 'string',
                 'images' => 'nullable|array',
-                'images.*' => 'image|max:5120',
-                'image' => 'nullable|image|max:5120',
+                'images.*' => 'nullable|string',
+                'image' => 'nullable|string',
             ]);
 
             // Map '1'/'0' strings to boolean for the database
@@ -166,24 +158,14 @@ class CafeController extends Controller
                 $validated['is_featured'] = filter_var($request->is_featured, FILTER_VALIDATE_BOOLEAN);
             }
 
-            if ($request->hasFile('image')) {
-                if ($cafe->image_path) {
-                    $oldPath = str_replace('/storage/', 'public/', $cafe->image_path);
-                    Storage::delete($oldPath);
-                }
-                $path = $request->file('image')->store('public/images');
-                $validated['image_path'] = Storage::url($path);
+            if ($request->has('image')) {
+                $validated['image_path'] = $request->input('image');
             }
 
-            $imagesPaths = $cafe->images ?: [];
-            if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $image) {
-                    $path = $image->store('public/images');
-                    $imagesPaths[] = Storage::url($path);
-                }
-                $validated['images'] = $imagesPaths;
-                if (!isset($validated['image_path']) && count($imagesPaths) > 0) {
-                    $validated['image_path'] = $imagesPaths[0];
+            if ($request->has('images')) {
+                $validated['images'] = $request->input('images');
+                if (!isset($validated['image_path']) && count($validated['images']) > 0) {
+                    $validated['image_path'] = $validated['images'][0];
                 }
             }
 
@@ -219,19 +201,31 @@ class CafeController extends Controller
         return response()->json(['message' => 'Deleted successfully']);
     }
 
-    public function like($id)
+    public function like(Request $request, $id)
     {
         $cafe = Cafe::findOrFail($id);
-        $cafe->increment('likes');
+        $user = $request->user();
+
+        if (!$cafe->likedByUsers()->where('user_id', $user->id)->exists()) {
+            $cafe->likedByUsers()->attach($user->id);
+            $cafe->increment('likes');
+        }
+
         return response()->json(['likes' => $cafe->likes]);
     }
 
-    public function unlike($id)
+    public function unlike(Request $request, $id)
     {
         $cafe = Cafe::findOrFail($id);
-        if ($cafe->likes > 0) {
-            $cafe->decrement('likes');
+        $user = $request->user();
+
+        if ($cafe->likedByUsers()->where('user_id', $user->id)->exists()) {
+            $cafe->likedByUsers()->detach($user->id);
+            if ($cafe->likes > 0) {
+                $cafe->decrement('likes');
+            }
         }
+
         return response()->json(['likes' => $cafe->likes]);
     }
 

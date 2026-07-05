@@ -3,7 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-
+import { SupabaseService } from '../services/supabase.service';
 @Component({
   selector: 'app-admin',
   standalone: true,
@@ -122,11 +122,6 @@ import { HttpClient } from '@angular/common/http';
             <div class="p-8">
                   <div class="space-y-4">
                     @for (post of posts.slice(0, 5); track post.id) {
-                       <div class="mt-4 flex flex-wrap gap-4" *ngIf="previewUrls.length > 0">
-                      <div *ngFor="let url of previewUrls" class="w-24 h-24 rounded-lg overflow-hidden border border-gray-100 shadow-sm relative group">
-                        <img [src]="url" class="w-full h-full object-cover">
-                      </div>
-                    </div>
                   <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
                           <div class="flex items-center gap-3">
                              <div class="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center">
@@ -241,7 +236,13 @@ import { HttpClient } from '@angular/common/http';
                         <div class="space-y-6">
                             <div class="space-y-2">
                               <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Cover Image</label>
-                            <input type="file" multiple (change)="onFileSelected($event)" accept="image/*" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 transition-all cursor-pointer">
+                              <input type="file" multiple (change)="onFileSelected($event)" accept="image/*" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 transition-all cursor-pointer">
+                              
+                              <div class="mt-4 flex flex-wrap gap-4" *ngIf="previewUrls.length > 0">
+                                <div *ngFor="let url of previewUrls" class="w-24 h-24 rounded-lg overflow-hidden border border-gray-100 shadow-sm relative group">
+                                  <img [src]="url" class="w-full h-full object-cover">
+                                </div>
+                              </div>
                             </div>
 
                           <div class="space-y-2">
@@ -418,7 +419,8 @@ export class AdminComponent implements OnInit {
     private router: Router,
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private supabaseService: SupabaseService
   ) {}
 
   setView(v: any) {
@@ -468,6 +470,17 @@ export class AdminComponent implements OnInit {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
+    
+    // Subscribe to realtime changes
+    const client = this.supabaseService.client;
+    if (client) {
+      client.channel('admin-cafes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'cafes' }, payload => {
+          this.fetchPosts(); // Refetch on any change to keep dashboard stats accurate
+        })
+        .subscribe();
+    }
+
     const ok = localStorage.getItem('btg_admin') === '1';
     if (!ok) {
       this.router.navigate(['/admin-login']);
@@ -488,45 +501,62 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  save() {
+  async save() {
+    if (this.view !== 'create' && this.view !== 'edit') return;
+    const isCreate = this.view === 'create';
+    
+    // Set loading state
+    const originalMessage = this.message;
+    this.message = 'Uploading images and saving...';
+    
     const customTags = this.tagsInput.split(',').map(t => t.trim()).filter(t => !!t);
     const allTags = Array.from(new Set([...(this.selectedTags || []), ...customTags]));
 
-    const formData = new FormData();
-    formData.append('title', this.form.title || '');
-    formData.append('name', this.form.name || '');
-    formData.append('type', this.form.type || 'Cafe');
-    formData.append('location', this.form.location || '');
-    formData.append('rating', String(this.form.rating ?? 0));
-    formData.append('review', this.form.review || '');
+    try {
+      // 1. Upload images to Supabase first
+      const uploadedUrls: string[] = [];
+      if (this.selectedFiles && this.selectedFiles.length > 0) {
+        for (const file of this.selectedFiles) {
+          const url = await this.supabaseService.uploadFile(file);
+          uploadedUrls.push(url);
+        }
+      }
 
+      // 2. Prepare JSON payload
+      const payload: any = {
+        title: this.form.title || '',
+        name: this.form.name || '',
+        type: this.form.type || 'Cafe',
+        location: this.form.location || '',
+        rating: this.form.rating ?? 0,
+        review: this.form.review || '',
+        is_published: this.form.is_published,
+        is_featured: this.form.is_featured,
+        tags: allTags
+      };
 
-    formData.append('is_published', this.form.is_published ? '1' : '0');
-    formData.append('is_featured', this.form.is_featured ? '1' : '0');
+      if (uploadedUrls.length > 0) {
+        // If we uploaded new images, send them
+        payload.images = uploadedUrls;
+      } else if (this.view === 'edit' && this.previewUrls.length > 0) {
+        // If we are editing and have existing preview URLs but no new files, keep them
+        payload.images = this.previewUrls;
+      }
 
-    // PHP expects tags[] for arrays in FormData
-    allTags.forEach((t) => formData.append('tags[]', t));
-
-    if (this.selectedFiles.length > 0) {
-      this.selectedFiles.forEach(file => {
-        formData.append('images[]', file);
-      });
-      // Legacy support for cover image if expected
-      formData.append('image', this.selectedFiles[0]);
-    }
-
-    if (this.view === 'create') {
-      this.http.post('/api/cafes', formData).subscribe({
-        next: () => this.handleSuccess('Content created successfully'),
-        error: (err) => this.handleError(err)
-      });
-    } else {
-      // Laravel PUT doesn't handle FormData well, so we spoof it with POST + _method=PUT
-      formData.append('_method', 'PUT');
-      this.http.post(`/api/cafes/${this.form.id}`, formData).subscribe({
-        next: () => this.handleSuccess('Content updated successfully'),
-        error: (err) => this.handleError(err)
-      });
+      // 3. Send to Laravel backend
+      if (isCreate) {
+        this.http.post('/api/cafes', payload).subscribe({
+          next: () => this.handleSuccess('Content created successfully'),
+          error: (err) => this.handleError(err)
+        });
+      } else {
+        this.http.put(`/api/cafes/${this.form.id}`, payload).subscribe({
+          next: () => this.handleSuccess('Content updated successfully'),
+          error: (err) => this.handleError(err)
+        });
+      }
+    } catch (err: any) {
+      this.handleError(err);
     }
   }
 
