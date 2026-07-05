@@ -1,4 +1,5 @@
 <?php
+
 // Ensure Laravel uses the writable /tmp directory on Vercel for logs and compiled views
 putenv('APP_STORAGE=/tmp');
 $_ENV['APP_STORAGE'] = '/tmp';
@@ -15,4 +16,16 @@ foreach ($dirs as $dir) {
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
-require __DIR__ . '/../public/index.php';
+try {
+    require __DIR__ . '/../public/index.php';
+} catch (\Throwable $e) {
+    http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'message' => 'CRITICAL LARAVEL CRASH',
+        'error' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+    ]);
+    exit;
+}
