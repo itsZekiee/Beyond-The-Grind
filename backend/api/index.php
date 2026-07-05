@@ -16,6 +16,9 @@ foreach ($dirs as $dir) {
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
+// FORCE Laravel to return JSON for exceptions so it doesn't try to load the 'view' component and crash!
+$_SERVER['HTTP_ACCEPT'] = 'application/json';
+
 try {
     require __DIR__ . '/../public/index.php';
 } catch (\Throwable $e) {
