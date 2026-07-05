@@ -462,8 +462,11 @@ export class AdminComponent implements OnInit {
   }
 
   ngOnInit() {
-    const ok = isPlatformBrowser(this.platformId) ? localStorage.getItem('btg_admin') === '1' : true;
-    if (!ok && isPlatformBrowser(this.platformId)) {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    const ok = localStorage.getItem('btg_admin') === '1';
+    if (!ok) {
       this.router.navigate(['/admin-login']);
     } else {
       this.fetchPosts();

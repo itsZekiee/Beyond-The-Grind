@@ -143,9 +143,20 @@ export class HomeComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.fetchPosts();
-    this.fetchFeaturedPosts();
-    this.updateVisitorCount();
+    if (isPlatformBrowser(this.platformId)) {
+      this.fetchPosts();
+      this.fetchFeaturedPosts();
+      this.updateVisitorCount();
+    }
+  }
+
+  getImageUrl(path: string) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    if (isPlatformBrowser(this.platformId) && window.location.hostname === 'localhost') {
+        return 'http://127.0.0.1:8000' + path;
+    }
+    return path;
   }
 
   private updateVisitorCount() {
@@ -196,7 +207,7 @@ export class HomeComponent implements OnInit {
       views: item.views || 0,
       liked: false,
       description: item.review,
-      image: (item.images && item.images.length > 0) ? item.images[0] : item.image_path
+      image: this.getImageUrl((item.images && item.images.length > 0) ? item.images[0] : item.image_path)
     }));
   }
 

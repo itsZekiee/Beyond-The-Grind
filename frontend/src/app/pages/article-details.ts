@@ -79,9 +79,18 @@ export class ArticleDetailsComponent implements OnInit {
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
+    if (id && isPlatformBrowser(this.platformId)) {
       this.fetchPost(id);
     }
+  }
+
+  getImageUrl(path: string) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    if (isPlatformBrowser(this.platformId) && window.location.hostname === 'localhost') {
+        return 'http://127.0.0.1:8000' + path;
+    }
+    return path;
   }
 
   fetchPost(id: string) {
@@ -98,7 +107,7 @@ export class ArticleDetailsComponent implements OnInit {
           likes: item.likes || 0,
           liked: false,
           description: item.review,
-          image: item.image_path
+          image: this.getImageUrl(item.image_path)
         };
         // Record a view
         this.http.post(`/api/cafes/${id}/view`, {}).subscribe();

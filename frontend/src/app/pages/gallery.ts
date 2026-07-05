@@ -72,14 +72,29 @@ export class GalleryComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.fetchGallery();
+    if (isPlatformBrowser(this.platformId)) {
+      this.fetchGallery();
+    }
+  }
+
+  getImageUrl(path: string) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    if (isPlatformBrowser(this.platformId) && window.location.hostname === 'localhost') {
+        return 'http://127.0.0.1:8000' + path;
+    }
+    return path;
   }
 
   fetchGallery() {
     const baseUrl = isPlatformBrowser(this.platformId) ? '' : 'http://127.0.0.1:8000';
     this.http.get<any[]>(`${baseUrl}/api/cafes`).subscribe({
       next: (data) => {
-        this.galleryItems = (data || []).filter(p => (p.images && p.images.length > 0) || p.image_path);
+        this.galleryItems = (data || []).map(p => ({
+          ...p,
+          image_path: this.getImageUrl(p.image_path),
+          images: (p.images || []).map((img: string) => this.getImageUrl(img))
+        })).filter(p => (p.images && p.images.length > 0) || p.image_path);
         this.applyFilters();
       },
       error: (err) => console.error('Failed to fetch gallery', err)

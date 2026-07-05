@@ -149,7 +149,9 @@ export class JournalComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.fetchPosts();
+    if (isPlatformBrowser(this.platformId)) {
+      this.fetchPosts();
+    }
 
     this.searchSubject.pipe(
       debounceTime(300),
@@ -233,8 +235,17 @@ export class JournalComponent implements OnInit, OnDestroy {
       views: item.views || 0,
       liked: false,
       description: item.review,
-      image: item.image_path
+      image: this.getImageUrl(item.image_path)
     }));
+  }
+
+  getImageUrl(path: string) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    if (isPlatformBrowser(this.platformId) && window.location.hostname === 'localhost') {
+        return 'http://127.0.0.1:8000' + path;
+    }
+    return path;
   }
 
   likePost(post: any) {
