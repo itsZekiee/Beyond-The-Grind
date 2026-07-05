@@ -530,6 +530,7 @@ export class AdminComponent implements OnInit {
 
   private handleSuccess(msg: string) {
     this.message = msg;
+    alert('Success: ' + msg);
     localStorage.removeItem('btg_draft');
     setTimeout(() => {
       this.message = '';
@@ -540,16 +541,19 @@ export class AdminComponent implements OnInit {
 
   private handleError(err: any) {
     console.error('Operation Error:', err);
+    let errorMsg = '';
     if (err.status === 404) {
-      this.message = `404 Error: The endpoint "${err.url}" was not found. If using "npm start", ensure the proxy is active.`;
+      errorMsg = `404 Error: The endpoint "${err.url}" was not found. If using "npm start", ensure the proxy is active.`;
     } else if (err.status === 0) {
-      this.message = 'Network error: Ensure backend is running and you used "npm start"';
+      errorMsg = 'Network error: Ensure backend is running and you used "npm start"';
     } else if (err.error && err.error.errors) {
       const messages = Object.values(err.error.errors).flat().join(', ');
-      this.message = 'Validation failed: ' + messages;
+      errorMsg = 'Validation failed: ' + messages;
     } else {
-      this.message = 'Operation failed: ' + (err.error?.message || err.message || 'Unknown error');
+      errorMsg = 'Operation failed: ' + (err.error?.message || err.message || 'Unknown error');
     }
+    this.message = errorMsg;
+    alert('Error: ' + errorMsg);
   }
 
   editPost(post: any) {
