@@ -3,20 +3,16 @@
 putenv('APP_STORAGE=/tmp');
 $_ENV['APP_STORAGE'] = '/tmp';
 
-// Turn off HTML error output so it doesn't break JSON parsing
-ini_set('display_errors', '0');
-error_reporting(E_ALL);
-
-register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error !== null && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE, E_USER_ERROR])) {
-        http_response_code(500);
-        header('Content-Type: application/json');
-        
-        $errorMsg = isset($error['message']) ? $error['message'] : 'Unknown Fatal Error';
-        echo json_encode(['message' => 'PHP Crash: ' . $errorMsg, 'error' => $error]);
-        exit;
+// Create required storage directories in /tmp
+$dirs = ['/tmp/logs', '/tmp/framework/views', '/tmp/framework/cache', '/tmp/framework/sessions', '/tmp/bootstrap/cache'];
+foreach ($dirs as $dir) {
+    if (!is_dir($dir)) {
+        mkdir($dir, 0777, true);
     }
-});
+}
+
+// Let PHP output ALL errors directly to the browser
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
 
 require __DIR__ . '/../public/index.php';
