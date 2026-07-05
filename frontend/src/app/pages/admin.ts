@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -417,7 +417,8 @@ export class AdminComponent implements OnInit {
   constructor(
     private router: Router,
     private http: HttpClient,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private cdr: ChangeDetectorRef
   ) {}
 
   setView(v: any) {
@@ -462,14 +463,14 @@ export class AdminComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.fetchPosts();
+
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
     const ok = localStorage.getItem('btg_admin') === '1';
     if (!ok) {
       this.router.navigate(['/admin-login']);
-    } else {
-      this.fetchPosts();
     }
   }
 
@@ -482,6 +483,7 @@ export class AdminComponent implements OnInit {
         this.totalViews = this.posts.reduce((acc, p) => acc + (p.views || 0), 0);
         this.totalLikes = this.posts.reduce((acc, p) => acc + (p.likes || 0), 0);
         this.avgRating = this.posts.length ? this.posts.reduce((acc, p) => acc + (p.rating || 0), 0) / this.posts.length : 0;
+        this.cdr.detectChanges();
       }
     });
   }

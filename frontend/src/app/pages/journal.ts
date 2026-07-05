@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -145,13 +145,13 @@ export class JournalComponent implements OnInit, OnDestroy {
 
   constructor(
     private http: HttpClient,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
-    if (isPlatformBrowser(this.platformId)) {
-      this.fetchPosts();
-    }
+    // Fetch data immediately to ensure state is populated
+    this.fetchPosts();
 
     this.searchSubject.pipe(
       debounceTime(300),
@@ -213,6 +213,7 @@ export class JournalComponent implements OnInit, OnDestroy {
         next: (data) => {
           this.mapPosts(data);
           this.applyFilters();
+          if (isPlatformBrowser(this.platformId)) this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Failed to fetch cafes from backend:', err);
@@ -235,7 +236,7 @@ export class JournalComponent implements OnInit, OnDestroy {
       views: item.views || 0,
       liked: false,
       description: item.review,
-      image: this.getImageUrl(item.image_path)
+      image: this.getImageUrl(item.image_path || (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : ''))
     }));
   }
 

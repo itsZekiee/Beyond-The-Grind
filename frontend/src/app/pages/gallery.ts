@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -68,13 +68,12 @@ export class GalleryComponent implements OnInit {
 
   constructor(
     private http: HttpClient,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
-    if (isPlatformBrowser(this.platformId)) {
-      this.fetchGallery();
-    }
+    this.fetchGallery();
   }
 
   getImageUrl(path: string) {
@@ -93,9 +92,10 @@ export class GalleryComponent implements OnInit {
         this.galleryItems = (data || []).map(p => ({
           ...p,
           image_path: this.getImageUrl(p.image_path),
-          images: (p.images || []).map((img: string) => this.getImageUrl(img))
+          images: (Array.isArray(p.images) ? p.images : (p.images ? [p.images] : [])).map((img: string) => this.getImageUrl(img))
         })).filter(p => (p.images && p.images.length > 0) || p.image_path);
         this.applyFilters();
+        if (isPlatformBrowser(this.platformId)) this.cdr.detectChanges();
       },
       error: (err) => console.error('Failed to fetch gallery', err)
     });

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { isPlatformBrowser } from '@angular/common';
-import { PLATFORM_ID, Inject } from '@angular/core';
+import { PLATFORM_ID, Inject, ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-home',
@@ -139,15 +139,14 @@ export class HomeComponent implements OnInit {
 
   constructor(
     private http: HttpClient,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
-    if (isPlatformBrowser(this.platformId)) {
-      this.fetchPosts();
-      this.fetchFeaturedPosts();
-      this.updateVisitorCount();
-    }
+    this.fetchPosts();
+    this.fetchFeaturedPosts();
+    this.updateVisitorCount();
   }
 
   getImageUrl(path: string) {
@@ -180,6 +179,7 @@ export class HomeComponent implements OnInit {
     this.http.get<any[]>(`${baseUrl}/api/cafes?sort=latest&limit=3`).subscribe({
       next: (latestData) => {
         this.posts = this.processPosts(latestData);
+        if (isPlatformBrowser(this.platformId)) this.cdr.detectChanges();
       },
       error: () => this.posts = []
     });
@@ -190,6 +190,7 @@ export class HomeComponent implements OnInit {
     this.http.get<any[]>(`${baseUrl}/api/cafes?featured=1&limit=3`).subscribe({
       next: (data) => {
         this.featuredPosts = this.processPosts(data);
+        if (isPlatformBrowser(this.platformId)) this.cdr.detectChanges();
       },
       error: () => this.featuredPosts = []
     });
@@ -207,7 +208,7 @@ export class HomeComponent implements OnInit {
       views: item.views || 0,
       liked: false,
       description: item.review,
-      image: this.getImageUrl((item.images && item.images.length > 0) ? item.images[0] : item.image_path)
+      image: this.getImageUrl((Array.isArray(item.images) && item.images.length > 0) ? item.images[0] : item.image_path)
     }));
   }
 
