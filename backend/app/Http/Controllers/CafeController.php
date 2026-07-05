@@ -109,7 +109,7 @@ class CafeController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Cafe creation failed: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::channel('errorlog')->error('Cafe creation failed: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
             ]);
@@ -184,7 +184,7 @@ class CafeController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Cafe update failed: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::channel('errorlog')->error('Cafe update failed: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
             ]);
