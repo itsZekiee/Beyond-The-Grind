@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { isPlatformBrowser } from '@angular/common';
+import { PLATFORM_ID, Inject } from '@angular/core';
 
 @Component({
   selector: 'app-home',
@@ -37,21 +39,17 @@ import { HttpClient } from '@angular/common/http';
     <section class="pb-20 px-4">
       <div class="container mx-auto">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-           <div class="aspect-video bg-gray-100 flex items-end p-6 relative overflow-hidden group cursor-pointer rounded-2xl" routerLink="/journal">
-              <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Cozy Cafes">
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <span class="relative z-10 text-white font-bold text-xl tracking-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-500">Cozy Cafes</span>
-           </div>
-           <div class="aspect-video bg-gray-100 flex items-end p-6 relative overflow-hidden group cursor-pointer rounded-2xl" routerLink="/journal">
-              <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=800" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Perfect Brews">
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <span class="relative z-10 text-white font-bold text-xl tracking-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-500">Perfect Brews</span>
-           </div>
-           <div class="aspect-video bg-gray-100 flex items-end p-6 relative overflow-hidden group cursor-pointer rounded-2xl" routerLink="/journal">
-              <img src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Epic Journeys">
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <span class="relative z-10 text-white font-bold text-xl tracking-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-500">Epic Journeys</span>
-           </div>
+           @for (post of featuredPosts; track post.id) {
+             <div class="aspect-video bg-gray-100 flex items-end p-6 relative overflow-hidden group cursor-pointer rounded-2xl" [routerLink]="['/article', post.id]">
+                <img *ngIf="post.image" [src]="post.image" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" [alt]="post.title">
+                <i *ngIf="!post.image" class="ri-image-line text-8xl text-gray-300 absolute inset-0 flex items-center justify-center"></i>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <span class="relative z-10 text-white font-bold text-xl tracking-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-500">{{post.title}}</span>
+             </div>
+           }
+           @if (featuredPosts.length === 0) {
+             <div class="col-span-3 text-center py-10 text-gray-400 font-medium">No featured articles available</div>
+           }
         </div>
       </div>
     </section>
@@ -136,32 +134,53 @@ import { HttpClient } from '@angular/common/http';
 })
 export class HomeComponent implements OnInit {
   posts: any[] = [];
+  featuredPosts: any[] = [];
   visitorCount = 0;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
 
   ngOnInit() {
     this.fetchPosts();
+    this.fetchFeaturedPosts();
     this.updateVisitorCount();
   }
 
   private updateVisitorCount() {
-    this.http.get<{count: number}>('/api/visitors').subscribe({
+    const baseUrl = isPlatformBrowser(this.platformId) ? '' : 'http://127.0.0.1:8000';
+    this.http.get<{count: number}>(`${baseUrl}/api/visitors`).subscribe({
       next: (res) => this.visitorCount = res.count,
       error: () => {
         // Fallback only if backend fails
-        this.visitorCount = parseInt(localStorage.getItem('btg_visitors') || '1240');
+        if (isPlatformBrowser(this.platformId)) {
+          this.visitorCount = parseInt(localStorage.getItem('btg_visitors') || '1240');
+        } else {
+          this.visitorCount = 1240;
+        }
       }
     });
   }
 
   private fetchPosts() {
+    const baseUrl = isPlatformBrowser(this.platformId) ? '' : 'http://127.0.0.1:8000';
     // Fetch latest posts to display newly published content
-    this.http.get<any[]>('/api/cafes?sort=latest&limit=3').subscribe({
+    this.http.get<any[]>(`${baseUrl}/api/cafes?sort=latest&limit=3`).subscribe({
       next: (latestData) => {
         this.posts = this.processPosts(latestData);
       },
       error: () => this.posts = []
+    });
+  }
+
+  private fetchFeaturedPosts() {
+    const baseUrl = isPlatformBrowser(this.platformId) ? '' : 'http://127.0.0.1:8000';
+    this.http.get<any[]>(`${baseUrl}/api/cafes?featured=1&limit=3`).subscribe({
+      next: (data) => {
+        this.featuredPosts = this.processPosts(data);
+      },
+      error: () => this.featuredPosts = []
     });
   }
 
@@ -177,21 +196,11 @@ export class HomeComponent implements OnInit {
       views: item.views || 0,
       liked: false,
       description: item.review,
-      image: this.formatImageUrl(item.image_path)
+      image: (item.images && item.images.length > 0) ? item.images[0] : item.image_path
     }));
   }
 
-  private formatImageUrl(path: string | null): string | null {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    // Ensure the path is correctly formatted for the backend proxy
-    // Our proxy maps /api to http://[::1]:8000
-    // If image_path is /storage/images/xyz.jpg, we need it to go through the proxy or direct to backend
-    // Since we don't have a direct /storage proxy, let's see where /api/cafes stores it.
-    // In CafeController: $validated['image_path'] = Storage::url($path);
-    // which usually returns /storage/images/...
-    return path;
-  }
+
 
   private recordView(id: number) {
     this.http.post(`/api/cafes/${id}/view`, {}).subscribe();

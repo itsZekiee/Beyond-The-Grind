@@ -48,7 +48,8 @@ class CafeController extends Controller
             $query->limit((int)$limit);
         }
 
-        return response()->json($query->get());
+        return response()->json($query->get())
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
     }
 
     public function store(Request $request)
@@ -69,6 +70,8 @@ class CafeController extends Controller
                 'is_featured' => 'sometimes',
                 'tags' => 'nullable|array',
                 'tags.*' => 'string',
+                'images' => 'nullable|array',
+                'images.*' => 'image|max:5120',
                 'image' => 'nullable|image|max:5120',
             ]);
 
@@ -82,6 +85,20 @@ class CafeController extends Controller
             if ($request->hasFile('image')) {
                 $path = $request->file('image')->store('public/images');
                 $validated['image_path'] = Storage::url($path);
+            }
+
+            $imagesPaths = [];
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $path = $image->store('public/images');
+                    $imagesPaths[] = Storage::url($path);
+                }
+            }
+            if (!empty($imagesPaths)) {
+                $validated['images'] = $imagesPaths;
+                if (!isset($validated['image_path']) && count($imagesPaths) > 0) {
+                    $validated['image_path'] = $imagesPaths[0]; // Set the first image as the cover
+                }
             }
 
             if (isset($validated['tags']) && is_array($validated['tags'])) {
@@ -136,6 +153,8 @@ class CafeController extends Controller
                 'is_featured' => 'sometimes',
                 'tags' => 'nullable|array',
                 'tags.*' => 'string',
+                'images' => 'nullable|array',
+                'images.*' => 'image|max:5120',
                 'image' => 'nullable|image|max:5120',
             ]);
 
@@ -148,13 +167,24 @@ class CafeController extends Controller
             }
 
             if ($request->hasFile('image')) {
-                // Delete old image if exists
                 if ($cafe->image_path) {
                     $oldPath = str_replace('/storage/', 'public/', $cafe->image_path);
                     Storage::delete($oldPath);
                 }
                 $path = $request->file('image')->store('public/images');
                 $validated['image_path'] = Storage::url($path);
+            }
+
+            $imagesPaths = $cafe->images ?: [];
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $path = $image->store('public/images');
+                    $imagesPaths[] = Storage::url($path);
+                }
+                $validated['images'] = $imagesPaths;
+                if (!isset($validated['image_path']) && count($imagesPaths) > 0) {
+                    $validated['image_path'] = $imagesPaths[0];
+                }
             }
 
             if (isset($validated['tags']) && is_array($validated['tags'])) {

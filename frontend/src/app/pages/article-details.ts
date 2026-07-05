@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { isPlatformBrowser } from '@angular/common';
+import { PLATFORM_ID, Inject } from '@angular/core';
 
 @Component({
   selector: 'app-article-details',
@@ -71,7 +73,8 @@ export class ArticleDetailsComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private http: HttpClient
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
   ngOnInit() {
@@ -82,7 +85,8 @@ export class ArticleDetailsComponent implements OnInit {
   }
 
   fetchPost(id: string) {
-    this.http.get<any>('/api/cafes/' + id).subscribe({
+    const baseUrl = isPlatformBrowser(this.platformId) ? '' : 'http://127.0.0.1:8000';
+    this.http.get<any>(`${baseUrl}/api/cafes/` + id).subscribe({
       next: (item) => {
         this.post = {
           id: item.id,

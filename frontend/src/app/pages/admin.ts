@@ -122,7 +122,12 @@ import { HttpClient } from '@angular/common/http';
             <div class="p-8">
                   <div class="space-y-4">
                     @for (post of posts.slice(0, 5); track post.id) {
-                       <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                       <div class="mt-4 flex flex-wrap gap-4" *ngIf="previewUrls.length > 0">
+                      <div *ngFor="let url of previewUrls" class="w-24 h-24 rounded-lg overflow-hidden border border-gray-100 shadow-sm relative group">
+                        <img [src]="url" class="w-full h-full object-cover">
+                      </div>
+                    </div>
+                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
                           <div class="flex items-center gap-3">
                              <div class="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center">
                                 <i class="ri-map-pin-line"></i>
@@ -236,14 +241,7 @@ import { HttpClient } from '@angular/common/http';
                         <div class="space-y-6">
                             <div class="space-y-2">
                               <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 ml-1">Cover Image</label>
-                              <div class="border-2 border-dashed border-gray-100 rounded-2xl p-6 text-center hover:border-black/10 transition-colors bg-gray-50/50">
-                                <input type="file" accept="image/*" (change)="onFileChange($event)" id="file-upload" class="hidden" />
-                                <label for="file-upload" class="cursor-pointer">
-                                  <i class="ri-image-add-line text-3xl text-gray-300 block mb-2"></i>
-                                  <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">{{imageFile ? imageFile.name : 'Select or drop image'}}</span>
-                                  <p class="text-[10px] text-gray-400 mt-1">JPG, PNG up to 5MB</p>
-                                </label>
-                              </div>
+                            <input type="file" multiple (change)="onFileSelected($event)" accept="image/*" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 transition-all cursor-pointer">
                             </div>
 
                           <div class="space-y-2">
@@ -402,6 +400,8 @@ import { HttpClient } from '@angular/common/http';
   `]
 })
 export class AdminComponent implements OnInit {
+  selectedFiles: File[] = [];
+  previewUrls: string[] = [];
   view: 'dashboard' | 'journal' | 'pins' | 'settings' | 'create' | 'edit' = 'dashboard';
   posts: any[] = [];
   publishedPosts: any[] = [];
@@ -409,7 +409,6 @@ export class AdminComponent implements OnInit {
   tagsInput = '';
   presetTags: string[] = ['Coffee', 'Travel', 'Food', 'Tourist Spot', 'Mountain'];
   selectedTags: string[] = [];
-  imageFile: File | null = null;
   message = '';
   totalLikes = 0;
   totalViews = 0;
@@ -450,32 +449,35 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  onFileChange(evt: any) {
-    const file = evt?.target?.files?.[0];
-    this.imageFile = file || null;
+  onFileSelected(event: any) {
+    if (event.target.files && event.target.files.length > 0) {
+      this.selectedFiles = Array.from(event.target.files);
+      this.previewUrls = [];
+      this.selectedFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e: any) => this.previewUrls.push(e.target.result);
+        reader.readAsDataURL(file);
+      });
+    }
   }
 
   ngOnInit() {
-    if (isPlatformBrowser(this.platformId)) {
-      const ok = localStorage.getItem('btg_admin') === '1';
-      if (!ok) {
-        this.router.navigate(['/admin-login']);
-      } else {
-        this.fetchPosts();
-      }
+    const ok = isPlatformBrowser(this.platformId) ? localStorage.getItem('btg_admin') === '1' : true;
+    if (!ok && isPlatformBrowser(this.platformId)) {
+      this.router.navigate(['/admin-login']);
+    } else {
+      this.fetchPosts();
     }
   }
 
   private fetchPosts() {
-    this.http.get<any[]>('/api/cafes?all=true').subscribe({
+    const baseUrl = isPlatformBrowser(this.platformId) ? '' : 'http://127.0.0.1:8000';
+    this.http.get<any[]>(`${baseUrl}/api/cafes?all=true`).subscribe({
       next: (data) => {
-        this.posts = (data || []).map(p => ({
-          ...p,
-          image: p.image_path // Unified image property name for consistency if needed, though admin uses p.image_path mostly
-        }));
+        this.posts = data || [];
         this.publishedPosts = this.posts.filter(p => p.is_published);
-        this.totalLikes = this.posts.reduce((acc, p) => acc + (p.likes || 0), 0);
         this.totalViews = this.posts.reduce((acc, p) => acc + (p.views || 0), 0);
+        this.totalLikes = this.posts.reduce((acc, p) => acc + (p.likes || 0), 0);
         this.avgRating = this.posts.length ? this.posts.reduce((acc, p) => acc + (p.rating || 0), 0) / this.posts.length : 0;
       }
     });
@@ -485,35 +487,38 @@ export class AdminComponent implements OnInit {
     const customTags = this.tagsInput.split(',').map(t => t.trim()).filter(t => !!t);
     const allTags = Array.from(new Set([...(this.selectedTags || []), ...customTags]));
 
-    const fd = new FormData();
-    fd.append('title', this.form.title || '');
-    fd.append('name', this.form.name || '');
-    fd.append('type', this.form.type || 'Cafe');
-    fd.append('location', this.form.location || '');
-    fd.append('rating', String(this.form.rating ?? 0));
-    fd.append('review', this.form.review || '');
+    const formData = new FormData();
+    formData.append('title', this.form.title || '');
+    formData.append('name', this.form.name || '');
+    formData.append('type', this.form.type || 'Cafe');
+    formData.append('location', this.form.location || '');
+    formData.append('rating', String(this.form.rating ?? 0));
+    formData.append('review', this.form.review || '');
 
 
-    fd.append('is_published', this.form.is_published ? '1' : '0');
-    fd.append('is_featured', this.form.is_featured ? '1' : '0');
+    formData.append('is_published', this.form.is_published ? '1' : '0');
+    formData.append('is_featured', this.form.is_featured ? '1' : '0');
 
     // PHP expects tags[] for arrays in FormData
-    allTags.forEach((t) => fd.append('tags[]', t));
+    allTags.forEach((t) => formData.append('tags[]', t));
 
-    if (this.imageFile) {
-      fd.append('image', this.imageFile);
+    if (this.selectedFiles.length > 0) {
+      this.selectedFiles.forEach(file => {
+        formData.append('images[]', file);
+      });
+      // Legacy support for cover image if expected
+      formData.append('image', this.selectedFiles[0]);
     }
 
     if (this.view === 'create') {
-      this.http.post('/api/cafes', fd).subscribe({
+      this.http.post('/api/cafes', formData).subscribe({
         next: () => this.handleSuccess('Content created successfully'),
         error: (err) => this.handleError(err)
       });
     } else {
       // Laravel PUT doesn't handle FormData well, so we spoof it with POST + _method=PUT
-      console.log("Location API Error");
-      fd.append('_method', 'PUT');
-      this.http.post(`/api/cafes/${this.form.id}`, fd).subscribe({
+      formData.append('_method', 'PUT');
+      this.http.post(`/api/cafes/${this.form.id}`, formData).subscribe({
         next: () => this.handleSuccess('Content updated successfully'),
         error: (err) => this.handleError(err)
       });
@@ -547,8 +552,9 @@ export class AdminComponent implements OnInit {
   editPost(post: any) {
     this.form = { ...post, is_published: !!post.is_published, is_featured: !!post.is_featured };
     this.selectedTags = Array.isArray(post.tags) ? post.tags : [];
-    this.tagsInput = '';
-    this.imageFile = null;
+    this.selectedFiles = [];
+    this.previewUrls = post.images || (post.image_path ? [post.image_path] : []);
+    this.message = '';
     this.view = 'edit';
   }
 
@@ -564,7 +570,8 @@ export class AdminComponent implements OnInit {
     this.form = { title: '', name: '', type: 'Cafe', location: '', rating: 0, review: '', is_published: true, is_featured: false };
     this.tagsInput = '';
     this.selectedTags = [];
-    this.imageFile = null;
+    this.selectedFiles = [];
+    this.previewUrls = [];
   }
 
   logout() {

@@ -1,18 +1,25 @@
 import { Component, OnInit, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { environment } from '../../environments/environment';
 
 declare var google: any;
 
 @Component({
   selector: 'app-road-trips',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="py-20 animate-in fade-in duration-700">
       <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto text-center mb-16">
           <h1 class="text-6xl font-playfair mb-4 tracking-tight">Road Trip Navigator</h1>
           <p class="text-gray-500 font-medium tracking-wide">Map your adventures and plan your next coffee hop</p>
+        </div>
+
+        <div class="max-w-xl mx-auto mb-10 relative">
+          <i class="ri-search-line absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
+          <input [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" type="text" placeholder="Search locations..." class="w-full bg-white border border-gray-200 rounded-full pl-14 pr-6 py-4 text-sm focus:outline-none focus:border-black focus:ring-2 focus:ring-black/5 transition-all shadow-sm">
         </div>
 
         <div class="flex flex-wrap justify-center gap-4 mb-12">
@@ -90,6 +97,7 @@ declare var google: any;
 })
 export class RoadTripsComponent implements AfterViewInit {
   activeCategory = 'All Locations';
+  searchQuery = '';
   private map: any;
   userCoords: { lat: number, lng: number } | null = null;
   filteredLocations: any[] = [];
@@ -118,7 +126,7 @@ export class RoadTripsComponent implements AfterViewInit {
     }
     const script = document.createElement('script');
     script.id = 'google-maps-script';
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyAup4DNGRiWgUfi0wbVuamojcgite59Mig';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${environment.googleMapsApiKey}`;
     script.async = true;
     script.defer = true;
     script.onload = () => {
@@ -143,30 +151,41 @@ export class RoadTripsComponent implements AfterViewInit {
 
   private detectUserLocation() {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        this.userCoords = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        this.map.setCenter(this.userCoords);
-
-        new google.maps.Marker({
-          position: this.userCoords,
-          map: this.map,
-          title: 'You are here',
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#3B82F6',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-          }
-        });
-
-        this.applyFilters();
-      });
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+          this.setupUserMarker();
+        },
+        (error) => {
+          // Fallback to Santa Maria, Central Luzon, Philippines
+          this.userCoords = { lat: 14.8150, lng: 120.9631 };
+          this.setupUserMarker();
+        }
+      );
+    } else {
+      this.userCoords = { lat: 14.8150, lng: 120.9631 };
+      this.setupUserMarker();
     }
+  }
+
+  private setupUserMarker() {
+    this.map.setCenter(this.userCoords);
+
+    new google.maps.Marker({
+      position: this.userCoords,
+      map: this.map,
+      title: 'Your Location',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 8,
+        fillColor: '#3B82F6',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+      }
+    });
+
+    this.applyFilters();
   }
 
   setCategory(cat: string) {
@@ -174,20 +193,28 @@ export class RoadTripsComponent implements AfterViewInit {
     this.applyFilters();
   }
 
-  private applyFilters() {
+  applyFilters() {
     // 1. Filter by category
     let filtered = this.locations;
     if (this.activeCategory !== 'All Locations') {
       filtered = filtered.filter(loc => loc.category === this.activeCategory);
     }
 
-    // 2. Filter by Geofence (5km)
+    // 2. Filter by search query
+    if (this.searchQuery && this.searchQuery.trim() !== '') {
+      const q = this.searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(loc => loc.name.toLowerCase().includes(q));
+    }
+
+    // 3. Filter by Geofence (5km) and sort
     if (this.userCoords) {
       filtered = filtered.filter(loc => {
         const dist = this.getDistance(this.userCoords!.lat, this.userCoords!.lng, loc.lat, loc.lng);
         (loc as any).distance = dist;
         return dist <= 5;
       });
+      // Sort by distance (nearest first)
+      filtered.sort((a: any, b: any) => a.distance - b.distance);
     }
 
     this.filteredLocations = filtered;

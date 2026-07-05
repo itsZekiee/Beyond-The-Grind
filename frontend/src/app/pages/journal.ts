@@ -201,12 +201,13 @@ export class JournalComponent implements OnInit, OnDestroy {
   }
 
   fetchPosts() {
-    const url = this.query && this.query.trim()
-      ? `/api/cafes?q=${encodeURIComponent(this.query.trim())}`
-      : '/api/cafes';
+    const queryStr = this.query && this.query.trim()
+      ? `?q=${encodeURIComponent(this.query.trim())}`
+      : '';
+    const baseUrl = isPlatformBrowser(this.platformId) ? '' : 'http://127.0.0.1:8000';
+    const url = `${baseUrl}/api/cafes${queryStr}`;
 
-    if (isPlatformBrowser(this.platformId)) {
-      this.http.get<any[]>(url).subscribe({
+    this.http.get<any[]>(url).subscribe({
         next: (data) => {
           this.mapPosts(data);
           this.applyFilters();
@@ -217,7 +218,6 @@ export class JournalComponent implements OnInit, OnDestroy {
           this.filteredPosts = [];
         }
       });
-    }
   }
 
   private mapPosts(data: any[]) {

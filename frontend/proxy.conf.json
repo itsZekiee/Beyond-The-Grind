@@ -7,5 +7,14 @@
       "^/api": "/api"
     },
     "logLevel": "debug"
+  },
+  "/storage": {
+    "target": "http://127.0.0.1:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/storage": "/storage"
+    },
+    "logLevel": "debug"
   }
 }

@@ -1,11 +1,12 @@
 import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-gallery',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   template: `
     <div class="py-20 animate-in fade-in duration-700">
       <div class="container mx-auto px-4">
@@ -26,28 +27,29 @@ import { HttpClient } from '@angular/common/http';
           }
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          @for (post of filteredPosts; track post.id) {
-            <div class="aspect-square bg-gray-100 relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-xl transition-all duration-500 rounded-xl">
-                 <img *ngIf="post.image_path" [src]="post.image_path" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" [alt]="post.name">
-                 <i *ngIf="!post.image_path" class="ri-image-line text-8xl text-gray-300 absolute inset-0 flex items-center justify-center"></i>
-                 
-                 <!-- Hover Overlay -->
-                 <div class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-center items-center text-white p-6">
-                    <h3 class="text-2xl font-playfair font-bold text-center mb-2">{{post.name || post.title}}</h3>
-                    <div class="flex items-center gap-2 text-sm font-medium mb-3">
-                      <i class="ri-map-pin-line text-gray-300"></i> {{post.location}}
-                    </div>
-                    <div class="flex items-center gap-1">
-                      @for (star of [1,2,3,4,5]; track star) {
-                         <i class="ri-star-fill text-xs" [class.text-yellow-400]="star <= post.rating" [class.text-gray-500]="star > post.rating"></i>
-                      }
-                      <span class="ml-2 text-xs font-bold">{{post.rating}}</span>
-                    </div>
+        <div class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
+          @for (item of filteredGallery; track item.id) {
+             <div class="relative mb-4 break-inside-avoid overflow-hidden group cursor-pointer rounded-xl bg-gray-100 shadow-sm" [routerLink]="['/article', item.id]">
+               <!-- First image -->
+               <img *ngIf="item.images && item.images.length > 0" [src]="item.images[0]" class="w-full h-auto block group-hover:scale-105 transition-transform duration-700">
+               <img *ngIf="(!item.images || item.images.length === 0) && item.image_path" [src]="item.image_path" class="w-full h-auto block group-hover:scale-105 transition-transform duration-700">
+               <div *ngIf="(!item.images || item.images.length === 0) && !item.image_path" class="w-full aspect-square flex items-center justify-center">
+                  <i class="ri-image-line text-4xl text-gray-300"></i>
+               </div>
+               
+               <!-- Hover Overlay -->
+               <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-center items-center text-white p-6">
+                 <h4 class="text-lg font-playfair font-bold text-center mb-1">{{item.name || item.title}}</h4>
+                 <div class="flex items-center gap-2 text-xs font-bold text-gray-300 mb-4">
+                   <i class="ri-map-pin-line"></i> {{item.location}}
                  </div>
-            </div>
+                 <div class="flex items-center gap-4 text-sm font-bold">
+                   <span class="flex items-center gap-1"><i class="ri-star-fill text-yellow-400"></i> {{item.rating}}</span>
+                 </div>
+               </div>
+             </div>
           }
-          @if (filteredPosts.length === 0) {
+          @if (filteredGallery.length === 0) {
             <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-20 text-gray-400">
                <i class="ri-image-line text-6xl mb-4 block opacity-50"></i>
                <p class="text-sm font-medium">No images found in this category.</p>
@@ -61,8 +63,8 @@ import { HttpClient } from '@angular/common/http';
 export class GalleryComponent implements OnInit {
   categories = ['All', 'Coffee', 'Restaurant', 'Landmark'];
   activeCategory = 'All';
-  posts: any[] = [];
-  filteredPosts: any[] = [];
+  galleryItems: any[] = [];
+  filteredGallery: any[] = [];
 
   constructor(
     private http: HttpClient,
@@ -70,16 +72,18 @@ export class GalleryComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    if (isPlatformBrowser(this.platformId)) {
-      this.http.get<any[]>('/api/cafes').subscribe({
-        next: (data) => {
-          // Filter to only posts that have an image
-          this.posts = data.filter(p => p.image_path);
-          this.applyFilters();
-        },
-        error: (err) => console.error('Failed to fetch gallery images', err)
-      });
-    }
+    this.fetchGallery();
+  }
+
+  fetchGallery() {
+    const baseUrl = isPlatformBrowser(this.platformId) ? '' : 'http://127.0.0.1:8000';
+    this.http.get<any[]>(`${baseUrl}/api/cafes`).subscribe({
+      next: (data) => {
+        this.galleryItems = (data || []).filter(p => (p.images && p.images.length > 0) || p.image_path);
+        this.applyFilters();
+      },
+      error: (err) => console.error('Failed to fetch gallery', err)
+    });
   }
 
   setCategory(cat: string) {
