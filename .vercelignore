@@ -1,19 +1,18 @@
 # .vercelignore
-# Exclude frontend source and dependencies from being bundled into the PHP backend serverless function
+# Exclude pre-compiled dependencies and local caches from being uploaded
 frontend/node_modules
-frontend/src
-frontend/.angular
-frontend/dist (unless you strictly need it, but static-build handles it)
-
-# Root level node_modules if any
 node_modules
-
-# Backend unnecessary files
+frontend/.angular
 backend/tests
 backend/storage/framework/cache/*
 backend/storage/framework/sessions/*
 backend/storage/framework/views/*
 backend/storage/logs/*
+
+# Git
+.git
+.idea
+.vscode
 
 # Git
 .git
