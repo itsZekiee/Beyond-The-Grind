@@ -12,7 +12,9 @@ register_shutdown_function(function() {
     if ($error !== null && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE, E_USER_ERROR])) {
         http_response_code(500);
         header('Content-Type: application/json');
-        echo json_encode(['message' => 'Fatal PHP Error', 'error' => $error]);
+        
+        $errorMsg = isset($error['message']) ? $error['message'] : 'Unknown Fatal Error';
+        echo json_encode(['message' => 'PHP Crash: ' . $errorMsg, 'error' => $error]);
         exit;
     }
 });
