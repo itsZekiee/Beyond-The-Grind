@@ -234,24 +234,24 @@ export class RoadTripsComponent implements AfterViewInit {
   }
 
   private createPopupContent(loc: any) {
-    return \`
+    return `
       <div class="p-4 font-inter" style="width: 250px;">
         <div class="h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
           <i class="ri-image-line text-3xl text-gray-300"></i>
         </div>
-        <h3 class="font-black uppercase tracking-tight text-sm mb-1">\${loc.name}</h3>
+        <h3 class="font-black uppercase tracking-tight text-sm mb-1">${loc.name}</h3>
         <div class="flex items-center gap-2 mb-2">
           <div class="flex items-center gap-1">
             <i class="ri-star-fill text-yellow-400 text-[10px]"></i>
-            <span class="text-[10px] font-bold">\${loc.rating}</span>
+            <span class="text-[10px] font-bold">${loc.rating}</span>
           </div>
-          <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">\${loc.status}</span>
+          <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${loc.status}</span>
         </div>
         <button class="w-full bg-black text-white py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors">
           View Details
         </button>
       </div>
-    \`;
+    `;
   }
 
   focusLocation(loc: any) {
