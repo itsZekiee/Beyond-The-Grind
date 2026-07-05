@@ -156,38 +156,10 @@ export class HomeComponent implements OnInit {
   }
 
   private fetchPosts() {
-    // 1. First attempt to fetch Featured articles (as requested by user)
-    this.http.get<any[]>('/api/cafes?featured=true').subscribe({
-      next: (featuredData) => {
-        if (featuredData && featuredData.length > 0) {
-          this.posts = this.processPosts(featuredData.slice(0, 3));
-        } else {
-          // 2. If no featured, fallback to Top 3 most popular
-          this.fetchPopularPosts();
-        }
-      },
-      error: () => this.fetchPopularPosts()
-    });
-  }
-
-  private fetchPopularPosts() {
-    this.http.get<any[]>('/api/cafes?sort=popular').subscribe({
-      next: (popularData) => {
-        if (popularData && popularData.length > 0) {
-          this.posts = this.processPosts(popularData.slice(0, 3));
-        } else {
-          // 3. Last fallback: latest posts
-          this.fetchLatestPosts();
-        }
-      },
-      error: () => this.fetchLatestPosts()
-    });
-  }
-
-  private fetchLatestPosts() {
-    this.http.get<any[]>('/api/cafes?sort=latest').subscribe({
+    // Fetch latest posts to display newly published content
+    this.http.get<any[]>('/api/cafes?sort=latest&limit=3').subscribe({
       next: (latestData) => {
-        this.posts = this.processPosts(latestData.slice(0, 3));
+        this.posts = this.processPosts(latestData);
       },
       error: () => this.posts = []
     });

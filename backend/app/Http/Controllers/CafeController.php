@@ -44,6 +44,10 @@ class CafeController extends Controller
             $query->orderByDesc('created_at');
         }
 
+        if ($limit = $request->query('limit')) {
+            $query->limit((int)$limit);
+        }
+
         return response()->json($query->get());
     }
 

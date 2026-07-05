@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 
-declare var L: any;
+declare var google: any;
 
 @Component({
   selector: 'app-road-trips',
@@ -29,9 +29,9 @@ declare var L: any;
         </div>
 
         <div class="bg-white border border-gray-100 overflow-hidden flex flex-col md:flex-row shadow-sm min-h-[600px]">
-          <!-- Map: Leaflet Implementation -->
+          <!-- Map: Google Maps Implementation -->
           <div class="flex-grow bg-[#f8f8f8] relative overflow-hidden border-r border-gray-100 min-h-[400px]" id="map">
-            <!-- Leaflet map will render here -->
+            <!-- Google map will render here -->
           </div>
 
           <!-- Sidebar: List -->
@@ -79,14 +79,12 @@ declare var L: any;
   `,
   styles: [`
     #map { height: 100%; width: 100%; z-index: 1; }
-    ::ng-deep .leaflet-popup-content-wrapper {
-      border-radius: 1rem;
-      padding: 0;
-      overflow: hidden;
+    .gm-style-iw {
+      padding: 0 !important;
+      border-radius: 1rem !important;
     }
-    ::ng-deep .leaflet-popup-content {
-      margin: 0;
-      width: 250px !important;
+    .gm-style-iw-d {
+      overflow: hidden !important;
     }
   `]
 })
@@ -96,6 +94,7 @@ export class RoadTripsComponent implements AfterViewInit {
   userCoords: { lat: number, lng: number } | null = null;
   filteredLocations: any[] = [];
   markers: any[] = [];
+  private infoWindow: any;
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
@@ -108,18 +107,37 @@ export class RoadTripsComponent implements AfterViewInit {
 
   ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
-      this.initMap();
-      this.applyFilters();
+      this.loadGoogleMaps();
     }
   }
 
+  private loadGoogleMaps() {
+    if (document.getElementById('google-maps-script')) {
+      this.initMap();
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'google-maps-script';
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyAup4DNGRiWgUfi0wbVuamojcgite59Mig';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      this.initMap();
+      this.applyFilters();
+    };
+    document.body.appendChild(script);
+  }
+
   private initMap() {
-    this.map = L.map('map').setView([37.7749, -122.4194], 13);
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-    }).addTo(this.map);
-
+    const mapOptions = {
+      center: { lat: 37.7749, lng: -122.4194 },
+      zoom: 13,
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      mapTypeControl: false,
+      streetViewControl: false,
+    };
+    this.map = new google.maps.Map(document.getElementById('map'), mapOptions);
+    this.infoWindow = new google.maps.InfoWindow();
     this.detectUserLocation();
   }
 
@@ -130,14 +148,21 @@ export class RoadTripsComponent implements AfterViewInit {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
-        this.map.setView([this.userCoords.lat, this.userCoords.lng], 13);
+        this.map.setCenter(this.userCoords);
 
-        L.marker([this.userCoords.lat, this.userCoords.lng], {
-          icon: L.divIcon({
-            html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"></div>',
-            className: 'custom-user-icon'
-          })
-        }).addTo(this.map).bindPopup('You are here');
+        new google.maps.Marker({
+          position: this.userCoords,
+          map: this.map,
+          title: 'You are here',
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: '#3B82F6',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+          }
+        });
 
         this.applyFilters();
       });
@@ -188,50 +213,50 @@ export class RoadTripsComponent implements AfterViewInit {
 
   private updateMarkers() {
     // Clear existing markers
-    this.markers.forEach(m => this.map.removeLayer(m));
+    this.markers.forEach(m => m.setMap(null));
     this.markers = [];
 
     // Add new markers
     this.filteredLocations.forEach(loc => {
-      const marker = L.marker([loc.lat, loc.lng], {
-        icon: L.divIcon({
-          html: `<div class="bg-black text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform">
-                  <i class="${this.getIcon(loc.category)}"></i>
-                 </div>`,
-          className: 'custom-marker',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32]
-        })
-      }).addTo(this.map);
+      const marker = new google.maps.Marker({
+        position: { lat: loc.lat, lng: loc.lng },
+        map: this.map,
+        title: loc.name
+      });
 
-      marker.bindPopup(this.createPopupContent(loc));
+      marker.addListener('click', () => {
+        this.infoWindow.setContent(this.createPopupContent(loc));
+        this.infoWindow.open(this.map, marker);
+      });
+
       this.markers.push(marker);
     });
   }
 
   private createPopupContent(loc: any) {
-    return `
-      <div class="p-4 font-inter">
+    return \`
+      <div class="p-4 font-inter" style="width: 250px;">
         <div class="h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
           <i class="ri-image-line text-3xl text-gray-300"></i>
         </div>
-        <h3 class="font-black uppercase tracking-tight text-sm mb-1">${loc.name}</h3>
+        <h3 class="font-black uppercase tracking-tight text-sm mb-1">\${loc.name}</h3>
         <div class="flex items-center gap-2 mb-2">
           <div class="flex items-center gap-1">
             <i class="ri-star-fill text-yellow-400 text-[10px]"></i>
-            <span class="text-[10px] font-bold">${loc.rating}</span>
+            <span class="text-[10px] font-bold">\${loc.rating}</span>
           </div>
-          <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${loc.status}</span>
+          <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">\${loc.status}</span>
         </div>
         <button class="w-full bg-black text-white py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors">
           View Details
         </button>
       </div>
-    `;
+    \`;
   }
 
   focusLocation(loc: any) {
-    this.map.flyTo([loc.lat, loc.lng], 15);
+    this.map.panTo({ lat: loc.lat, lng: loc.lng });
+    this.map.setZoom(15);
   }
 
   getIcon(cat: string) {
@@ -243,3 +268,4 @@ export class RoadTripsComponent implements AfterViewInit {
     }
   }
 }
+

@@ -1,5 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -143,7 +143,10 @@ export class JournalComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
 
   ngOnInit() {
     this.fetchPosts();
@@ -199,20 +202,22 @@ export class JournalComponent implements OnInit, OnDestroy {
 
   fetchPosts() {
     const url = this.query && this.query.trim()
-      ? `/api/cafes?all=true&q=${encodeURIComponent(this.query.trim())}`
-      : '/api/cafes?all=true';
+      ? `/api/cafes?q=${encodeURIComponent(this.query.trim())}`
+      : '/api/cafes';
 
-    this.http.get<any[]>(url).subscribe({
-      next: (data) => {
-        this.mapPosts(data);
-        this.applyFilters();
-      },
-      error: (err) => {
-        console.error('Failed to fetch cafes from backend:', err);
-        this.posts = [];
-        this.filteredPosts = [];
-      }
-    });
+    if (isPlatformBrowser(this.platformId)) {
+      this.http.get<any[]>(url).subscribe({
+        next: (data) => {
+          this.mapPosts(data);
+          this.applyFilters();
+        },
+        error: (err) => {
+          console.error('Failed to fetch cafes from backend:', err);
+          this.posts = [];
+          this.filteredPosts = [];
+        }
+      });
+    }
   }
 
   private mapPosts(data: any[]) {

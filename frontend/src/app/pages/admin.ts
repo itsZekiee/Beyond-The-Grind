@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -21,17 +21,17 @@ import { HttpClient } from '@angular/common/http';
           </div>
 
           <nav class="space-y-2">
-            <a (click)="view = 'dashboard'" [class.bg-white]="view === 'dashboard' || view === 'create' || view === 'edit'" [class.text-black]="view === 'dashboard' || view === 'create' || view === 'edit'" class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-white/10 transition-colors">
+            <a (click)="setView('dashboard')" [class.bg-white]="view === 'dashboard' || view === 'create' || view === 'edit'" [class.text-black]="view === 'dashboard' || view === 'create' || view === 'edit'" class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-white/10 transition-colors">
               <i class="ri-dashboard-line text-lg"></i> Dashboard
             </a>
             <div class="pt-4 pb-2 px-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Management</div>
-            <a (click)="view = 'journal'" [class.bg-white]="view === 'journal'" [class.text-black]="view === 'journal'" class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-white/10 transition-colors">
+            <a (click)="setView('journal')" [class.bg-white]="view === 'journal'" [class.text-black]="view === 'journal'" class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-white/10 transition-colors">
               <i class="ri-book-open-line text-lg"></i> Journal
             </a>
-            <a (click)="view = 'pins'" [class.bg-white]="view === 'pins'" [class.text-black]="view === 'pins'" class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-white/10 transition-colors">
+            <a (click)="setView('pins')" [class.bg-white]="view === 'pins'" [class.text-black]="view === 'pins'" class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-white/10 transition-colors">
               <i class="ri-map-pin-line text-lg"></i> Map Pins
             </a>
-            <a (click)="view = 'settings'" [class.bg-white]="view === 'settings'" [class.text-black]="view === 'settings'" class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-white/10 transition-colors">
+            <a (click)="setView('settings')" [class.bg-white]="view === 'settings'" [class.text-black]="view === 'settings'" class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-white/10 transition-colors">
               <i class="ri-settings-3-line text-lg"></i> Site Settings
             </a>
           </nav>
@@ -52,7 +52,7 @@ import { HttpClient } from '@angular/common/http';
             <p class="text-gray-400 text-sm font-medium">Manage your platform's content and configuration.</p>
           </div>
           <div class="flex items-center gap-4" *ngIf="view === 'dashboard' || view === 'journal' || view === 'pins'">
-            <button (click)="view = 'create'" class="bg-black text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors shadow-lg">
+            <button (click)="setView('create')" class="bg-black text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors shadow-lg">
               Create New Entry
             </button>
           </div>
@@ -83,7 +83,7 @@ import { HttpClient } from '@angular/common/http';
             <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
           <div class="p-8 border-b border-gray-50 flex justify-between items-center">
             <h3 class="font-bold text-gray-900 uppercase text-xs tracking-widest">Manage Journal (Published)</h3>
-            <button (click)="view = 'journal'" class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black">View All</button>
+            <button (click)="setView('journal')" class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black">View All</button>
           </div>
           <div class="px-8 pt-4">
             <p class="text-xs text-gray-400">View and manage your published coffee adventure entries.</p>
@@ -114,7 +114,7 @@ import { HttpClient } from '@angular/common/http';
           <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
             <div class="p-8 border-b border-gray-50 flex justify-between items-center">
               <h3 class="font-bold text-gray-900 uppercase text-xs tracking-widest">Manage Pins (Locations)</h3>
-              <button (click)="view = 'pins'" class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black">Manage</button>
+              <button (click)="setView('pins')" class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black">Manage</button>
             </div>
             <div class="px-8 pt-4">
               <p class="text-xs text-gray-400">Location pins for the interactive map.</p>
@@ -188,7 +188,7 @@ import { HttpClient } from '@angular/common/http';
                       <h3 class="text-2xl font-bold text-gray-900">{{view === 'create' ? 'Create New' : 'Edit'}} Entry</h3>
                       <p class="text-gray-400 text-xs font-medium mt-1">Fill in the information below to {{view === 'create' ? 'publish a new adventure' : 'update your entry' }}.</p>
                     </div>
-                    <button (click)="view = 'dashboard'" class="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400">
+                    <button (click)="setView('dashboard')" class="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400">
                       <i class="ri-close-line text-2xl"></i>
                     </button>
                 </div>
@@ -300,7 +300,7 @@ import { HttpClient } from '@angular/common/http';
                           <button type="button" (click)="loadDraft()" class="bg-gray-100 text-gray-900 px-6 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
                             Load Draft
                           </button>
-                          <button type="button" (click)="view = 'dashboard'" class="text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-black px-6 py-4 transition-colors">Cancel</button>
+                          <button type="button" (click)="setView('dashboard')" class="text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-black px-6 py-4 transition-colors">Cancel</button>
                         </div>
                         <div *ngIf="message" class="flex items-center gap-2 px-4 py-2 rounded-lg" [class.bg-green-50]="message.includes('success')" [class.bg-red-50]="message.includes('failed')">
                           <i [class]="message.includes('success') ? 'ri-checkbox-circle-line text-green-600' : 'ri-error-warning-line text-red-600'"></i>
@@ -415,7 +415,18 @@ export class AdminComponent implements OnInit {
   totalViews = 0;
   avgRating = 0;
 
-  constructor(private router: Router, private http: HttpClient) {}
+  constructor(
+    private router: Router,
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
+
+  setView(v: any) {
+    this.view = v;
+    if (v === 'dashboard' || v === 'journal' || v === 'pins') {
+      this.fetchPosts();
+    }
+  }
 
   hasFeatured() {
     return this.posts.some(p => p.is_featured);
@@ -445,11 +456,13 @@ export class AdminComponent implements OnInit {
   }
 
   ngOnInit() {
-    const ok = localStorage.getItem('btg_admin') === '1';
-    if (!ok) {
-      this.router.navigate(['/admin-login']);
-    } else {
-      this.fetchPosts();
+    if (isPlatformBrowser(this.platformId)) {
+      const ok = localStorage.getItem('btg_admin') === '1';
+      if (!ok) {
+        this.router.navigate(['/admin-login']);
+      } else {
+        this.fetchPosts();
+      }
     }
   }
 
@@ -512,8 +525,7 @@ export class AdminComponent implements OnInit {
     localStorage.removeItem('btg_draft');
     setTimeout(() => {
       this.message = '';
-      this.view = 'dashboard';
-      this.fetchPosts();
+      this.setView('dashboard');
     }, 1500);
     this.resetForm();
   }
