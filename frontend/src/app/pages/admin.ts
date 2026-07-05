@@ -582,7 +582,8 @@ export class AdminComponent implements OnInit {
       const messages = Object.values(err.error.errors).flat().join(', ');
       errorMsg = 'Validation failed: ' + messages;
     } else {
-      errorMsg = 'Operation failed: ' + (err.error?.message || err.message || 'Unknown error');
+      const rawError = typeof err.error === 'string' ? err.error.substring(0, 500) : JSON.stringify(err.error);
+      errorMsg = 'Operation failed: RAW RESPONSE: ' + rawError;
     }
     this.message = errorMsg;
     alert('Error: ' + errorMsg);
