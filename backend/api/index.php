@@ -3,6 +3,10 @@
 putenv('APP_STORAGE=/tmp');
 $_ENV['APP_STORAGE'] = '/tmp';
 
+// Turn off HTML error output so it doesn't break JSON parsing
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
 register_shutdown_function(function() {
     $error = error_get_last();
     if ($error !== null && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE, E_USER_ERROR])) {
@@ -12,8 +16,5 @@ register_shutdown_function(function() {
         exit;
     }
 });
-
-$app = require __DIR__ . '/../bootstrap/app.php';
-$app->useStoragePath('/tmp');
 
 require __DIR__ . '/../public/index.php';
