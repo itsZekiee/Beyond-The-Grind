@@ -17,17 +17,6 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->reportable(function (\Throwable $e) {
-            http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'REAL_ERROR' => $e->getMessage(),
-                'FILE' => $e->getFile(),
-                'LINE' => $e->getLine()
-            ]);
-            exit;
-        });
-        
         $exceptions->shouldRenderJsonWhen(function (\Illuminate\Http\Request $request, \Throwable $e) {
             return true;
         });

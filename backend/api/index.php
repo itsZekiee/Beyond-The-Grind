@@ -1,8 +1,19 @@
 <?php
-
 // Ensure Laravel uses the writable /tmp directory on Vercel for logs and compiled views
 putenv('APP_STORAGE=/tmp');
 $_ENV['APP_STORAGE'] = '/tmp';
+
+// Tell Laravel to cache packages, services, and configs in the writable /tmp directory!
+putenv('APP_SERVICES_CACHE=/tmp/bootstrap/cache/services.php');
+$_ENV['APP_SERVICES_CACHE'] = '/tmp/bootstrap/cache/services.php';
+putenv('APP_PACKAGES_CACHE=/tmp/bootstrap/cache/packages.php');
+$_ENV['APP_PACKAGES_CACHE'] = '/tmp/bootstrap/cache/packages.php';
+putenv('APP_CONFIG_CACHE=/tmp/bootstrap/cache/config.php');
+$_ENV['APP_CONFIG_CACHE'] = '/tmp/bootstrap/cache/config.php';
+putenv('APP_ROUTES_CACHE=/tmp/bootstrap/cache/routes-v7.php');
+$_ENV['APP_ROUTES_CACHE'] = '/tmp/bootstrap/cache/routes-v7.php';
+putenv('APP_EVENTS_CACHE=/tmp/bootstrap/cache/events.php');
+$_ENV['APP_EVENTS_CACHE'] = '/tmp/bootstrap/cache/events.php';
 
 // Create required storage directories in /tmp
 $dirs = ['/tmp/logs', '/tmp/framework/views', '/tmp/framework/cache', '/tmp/framework/sessions', '/tmp/bootstrap/cache'];
@@ -12,23 +23,4 @@ foreach ($dirs as $dir) {
     }
 }
 
-// Let PHP output ALL errors directly to the browser
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
-
-// FORCE Laravel to return JSON for exceptions so it doesn't try to load the 'view' component and crash!
-$_SERVER['HTTP_ACCEPT'] = 'application/json';
-
-try {
-    require __DIR__ . '/../public/index.php';
-} catch (\Throwable $e) {
-    http_response_code(500);
-    header('Content-Type: application/json');
-    echo json_encode([
-        'message' => 'CRITICAL LARAVEL CRASH',
-        'error' => $e->getMessage(),
-        'file' => $e->getFile(),
-        'line' => $e->getLine(),
-    ]);
-    exit;
-}
+require __DIR__ . '/../public/index.php';
