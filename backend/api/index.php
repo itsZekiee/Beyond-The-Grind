@@ -23,4 +23,17 @@ foreach ($dirs as $dir) {
     }
 }
 
+// Remove stale package/service discovery caches from /tmp so that
+// SanctumServiceProvider is always discovered fresh on each cold start.
+// This prevents "Auth driver [sanctum] not defined" on Vercel serverless.
+$staleCaches = [
+    '/tmp/bootstrap/cache/packages.php',
+    '/tmp/bootstrap/cache/services.php',
+];
+foreach ($staleCaches as $cache) {
+    if (file_exists($cache)) {
+        @unlink($cache);
+    }
+}
+
 require __DIR__ . '/../public/index.php';
