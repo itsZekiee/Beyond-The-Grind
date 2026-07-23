@@ -23,12 +23,24 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'google_id',
+        'avatar',
         'receives_newsfeed',
     ];
 
     public function likedCafes()
     {
         return $this->belongsToMany(Cafe::class, 'cafe_user_likes')->withTimestamps();
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class);
     }
 
     /**

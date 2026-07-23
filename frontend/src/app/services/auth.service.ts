@@ -7,6 +7,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  avatar?: string;
   receives_newsfeed: boolean;
 }
 
@@ -52,6 +53,22 @@ export class AuthService {
 
   login(credentials: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/api/login`, credentials).pipe(
+      tap((res: any) => {
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.setItem('auth_token', res.access_token);
+        }
+        this.currentUserSubject.next(res.user);
+      })
+    );
+  }
+
+  /**
+   * Exchange a Google Identity Services credential (JWT ID token) for a
+   * Sanctum token. The backend verifies the credential against Google's
+   * tokeninfo endpoint and performs a find-or-create on the user.
+   */
+  googleSignIn(credential: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/api/auth/google`, { credential }).pipe(
       tap((res: any) => {
         if (isPlatformBrowser(this.platformId)) {
           localStorage.setItem('auth_token', res.access_token);

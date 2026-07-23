@@ -179,15 +179,28 @@ export class HomeComponent implements OnInit {
 
   private updateVisitorCount() {
     const baseUrl = isPlatformBrowser(this.platformId) ? '' : 'http://127.0.0.1:8000';
-    this.http.get<{count: number}>(`${baseUrl}/api/visitors`).subscribe({
+
+    // Generate (or reuse) a persistent visitor ID stored in localStorage.
+    // This is sent to the backend so it can deduplicate visits per visitor
+    // per calendar day – preventing page-refresh double-counting.
+    let visitorId = '';
+    if (isPlatformBrowser(this.platformId)) {
+      visitorId = localStorage.getItem('btg_visitor_id') || '';
+      if (!visitorId) {
+        visitorId = crypto.randomUUID ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('btg_visitor_id', visitorId);
+      }
+    }
+
+    this.http.post<{ count: number }>(`${baseUrl}/api/visitors/track`, { visitor_id: visitorId }).subscribe({
       next: (res) => this.visitorCount = res.count,
       error: () => {
-        // Fallback only if backend fails
-        if (isPlatformBrowser(this.platformId)) {
-          this.visitorCount = parseInt(localStorage.getItem('btg_visitors') || '1240');
-        } else {
-          this.visitorCount = 1240;
-        }
+        // Fallback: try the read-only count endpoint
+        this.http.get<{ count: number }>(`${baseUrl}/api/visitors/count`).subscribe({
+          next: (res) => this.visitorCount = res.count,
+          error: () => this.visitorCount = 0
+        });
       }
     });
   }

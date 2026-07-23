@@ -41,4 +41,14 @@ class Cafe extends Model
     {
         return $this->belongsToMany(User::class, 'cafe_user_likes')->withTimestamps();
     }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class);
+    }
 }

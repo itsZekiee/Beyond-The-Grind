@@ -1,8 +1,11 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectorRef, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
+
+// Extend the global Window type to include the Google Identity Services API
+declare const google: any;
 
 @Component({
   selector: 'app-login',
@@ -19,6 +22,24 @@ import { AuthService } from '../services/auth.service';
         <div *ngIf="error" class="mb-6 p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100 flex items-start gap-3">
             <i class="ri-error-warning-fill mt-0.5"></i>
             <span>{{ error }}</span>
+        </div>
+
+        <!-- Google SSO Button -->
+        <div class="mb-6">
+          <div id="google-signin-btn" class="flex justify-center"></div>
+          <div *ngIf="!googleReady" class="flex justify-center">
+            <button disabled
+              class="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 px-4 text-sm font-medium text-gray-500 bg-gray-50 cursor-not-allowed">
+              <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12.255 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96h-3.98v3.09C3.515 21.3 7.615 24 12.255 24z"/><path fill="#FBBC05" d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 000 10.76l3.98-3.09z"/><path fill="#EA4335" d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.64 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
+              Continue with Google
+            </button>
+          </div>
+        </div>
+
+        <div class="relative flex items-center gap-4 mb-6">
+          <div class="flex-1 h-px bg-gray-100"></div>
+          <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">or</span>
+          <div class="flex-1 h-px bg-gray-100"></div>
         </div>
 
         <form (ngSubmit)="onSubmit()" class="space-y-6">
@@ -48,13 +69,63 @@ import { AuthService } from '../services/auth.service';
     </div>
   `
 })
-export class LoginComponent {
+export class LoginComponent implements AfterViewInit {
   email = '';
   password = '';
   loading = false;
   error = '';
+  googleReady = false;
 
-  constructor(private authService: AuthService, private router: Router, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
+
+  ngAfterViewInit() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    this.initGoogleSignIn();
+  }
+
+  private initGoogleSignIn() {
+    const attempt = () => {
+      if (typeof google === 'undefined' || !google?.accounts?.id) {
+        setTimeout(attempt, 300);
+        return;
+      }
+
+      // GOOGLE_CLIENT_ID — replace with your actual Client ID
+      const clientId = (window as any).__GOOGLE_CLIENT_ID__ || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response: any) => this.handleGoogleCredential(response.credential),
+      });
+
+      google.accounts.id.renderButton(
+        document.getElementById('google-signin-btn'),
+        { theme: 'outline', size: 'large', width: 400, text: 'signin_with' }
+      );
+
+      this.googleReady = true;
+      this.cdr.detectChanges();
+    };
+    attempt();
+  }
+
+  handleGoogleCredential(credential: string) {
+    this.loading = true;
+    this.error = '';
+    this.authService.googleSignIn(credential).subscribe({
+      next: () => this.router.navigate(['/']),
+      error: (err: any) => {
+        this.loading = false;
+        this.error = err.error?.message || 'Google sign-in failed. Please try again.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   onSubmit() {
     this.loading = true;
